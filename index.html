@@ -142,6 +142,7 @@ textarea.keyword-input:focus{border-color:var(--navy);background:var(--white);}
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span id="trend-status" style="color:#A0B4C4;"></span>
+      <button class="btn btn-ghost btn-sm" id="generate-all-btn">Generate all</button>
       <button class="btn btn-ghost btn-sm" id="clear-batch-btn">Clear all</button>
     </div>
   </div>
@@ -162,6 +163,13 @@ let activeId = null;
 let trends = null;
 let idCounter = 0;
 
+// Cache for the batch-shared Spoonflower content (name/description/
+// sharedTags/licensingNote) generated once per design from the main
+// image, then reused across every colorway's per-image "colorway" call.
+// Invalidated whenever the color/mood toggle or the main image changes.
+let sharedSpoonflower = null;
+let sharedSpoonflowerFor = null; // { mainImageId, includeColorMood }
+
 const uploadBox   = document.getElementById('upload-box');
 const fileInput   = document.getElementById('file-input');
 const filmstrip   = document.getElementById('filmstrip');
@@ -171,6 +179,7 @@ const workspace   = document.getElementById('workspace');
 const emptyState  = document.getElementById('empty-state');
 const colorMoodToggle = document.getElementById('color-mood-toggle');
 const clearBatchBtn   = document.getElementById('clear-batch-btn');
+const generateAllBtn  = document.getElementById('generate-all-btn');
 const trendStatus      = document.getElementById('trend-status');
 
 uploadBox.addEventListener('click', () => fileInput.click());
@@ -182,8 +191,27 @@ fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInp
 clearBatchBtn.addEventListener('click', () => {
   if(images.length && !confirm('Clear all images and start a new design? Trend research cache will reset too.')) return;
   images = []; activeId = null; trends = null;
+  sharedSpoonflower = null; sharedSpoonflowerFor = null;
   trendStatus.textContent = '';
   render();
+});
+
+// Changing the toggle changes what belongs in the shared vs per-colorway
+// content (e.g. whether "name" is shared or per-image), so the cached
+// shared content is no longer valid and must be regenerated.
+colorMoodToggle.addEventListener('change', () => {
+  sharedSpoonflower = null; sharedSpoonflowerFor = null;
+});
+
+generateAllBtn.addEventListener('click', async () => {
+  generateAllBtn.disabled = true;
+  const orig = generateAllBtn.textContent;
+  try {
+    await generateAll((n, total) => { generateAllBtn.textContent = 'Generating ' + n + '/' + total + '…'; });
+  } finally {
+    generateAllBtn.textContent = orig;
+    generateAllBtn.disabled = false;
+  }
 });
 
 function handleFiles(fileList){
@@ -238,7 +266,13 @@ function readAndResize(file){
   reader.readAsDataURL(file);
 }
 
-function setMain(id){ images.forEach(img => img.isMain = (img.id === id)); render(); }
+function setMain(id){
+  images.forEach(img => img.isMain = (img.id === id));
+  // Shared Spoonflower content was analyzed from the old main image;
+  // a new main image means it should be regenerated from that image instead.
+  sharedSpoonflower = null; sharedSpoonflowerFor = null;
+  render();
+}
 function selectImage(id){ activeId = id; render(); }
 function removeImage(id){
   images = images.filter(img => img.id !== id);
@@ -308,6 +342,47 @@ async function fetchJSON(url, options, timeoutMs = 28000){
 /* ────────────────────────────────────────────────────────────
    Generate
 ──────────────────────────────────────────────────────────── */
+async function ensureTrends(refImg){
+  if(trends) return;
+  trendStatus.textContent = 'Researching trends…';
+  const tData = await fetchJSON('/.netlify/functions/research-trends', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ imageBase64: refImg.base64, mediaType: refImg.mediaType }),
+  }, 28000);
+  trends = tData.trends;
+  trendStatus.textContent = 'Trends cached (' + (trends.keywords||[]).length + ' keywords)';
+}
+
+// Generates (or returns the cached) design-level Spoonflower content —
+// name (only when color/mood is off), description, sharedTags,
+// licensingNote — from the main image. Only called when 2+ images in the
+// batch have Spoonflower selected, since that's the only case where
+// sharing this content across per-image calls actually saves anything.
+async function ensureSharedSpoonflowerContent(){
+  const includeColorMood = colorMoodToggle.checked;
+  const mainImg = images.find(i => i.isMain) || images[0];
+  const stillValid = sharedSpoonflower && sharedSpoonflowerFor
+    && sharedSpoonflowerFor.mainImageId === mainImg.id
+    && sharedSpoonflowerFor.includeColorMood === includeColorMood;
+  if(stillValid) return sharedSpoonflower;
+
+  await ensureTrends(mainImg);
+  const manualKeywords = (mainImg.keywordOverride && mainImg.keywordOverride.trim()) ? mainImg.keywordOverride : '';
+
+  const data = await fetchJSON('/.netlify/functions/generate-ai-content', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      mode: 'shared',
+      imageBase64: mainImg.base64, mediaType: mainImg.mediaType,
+      includeColorMood, trends, manualKeywords,
+    }),
+  }, 28000);
+
+  sharedSpoonflower = { ...data.results.spoonflower, licensingNote: data.results.licensingNote };
+  sharedSpoonflowerFor = { mainImageId: mainImg.id, includeColorMood };
+  return sharedSpoonflower;
+}
+
 async function generate(id){
   const img = images.find(i => i.id === id);
   const platforms = Array.from(img.platforms);
@@ -316,27 +391,41 @@ async function generate(id){
   img.loading = true; img.error = null; render();
 
   try {
-    if(!trends){
-      trendStatus.textContent = 'Researching trends…';
-      const tData = await fetchJSON('/.netlify/functions/research-trends', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ imageBase64: img.base64, mediaType: img.mediaType }),
-      }, 28000);
-      trends = tData.trends;
-      trendStatus.textContent = 'Trends cached (' + (trends.keywords||[]).length + ' keywords)';
-    }
-
+    await ensureTrends(img);
     const manualKeywords = (img.keywordOverride && img.keywordOverride.trim()) ? img.keywordOverride : '';
+    const includeColorMood = colorMoodToggle.checked;
 
-    const data = await fetchJSON('/.netlify/functions/generate-ai-content', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        imageBase64: img.base64, mediaType: img.mediaType,
-        platforms, links: img.links,
-        includeColorMood: colorMoodToggle.checked,
-        trends, manualKeywords,
-      }),
-    }, 28000);
+    // Only worth splitting into shared+colorway calls when this design has
+    // 2+ images requesting Spoonflower — otherwise there's nothing to
+    // share, and a single full call is simpler and no more expensive.
+    const spoonflowerImages = images.filter(i => i.platforms.has('spoonflower'));
+    const useBatchSplit = platforms.includes('spoonflower') && spoonflowerImages.length > 1;
+
+    let data;
+    if(useBatchSplit){
+      const shared = await ensureSharedSpoonflowerContent();
+      data = await fetchJSON('/.netlify/functions/generate-ai-content', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          mode: 'colorway',
+          imageBase64: img.base64, mediaType: img.mediaType,
+          platforms, links: img.links,
+          includeColorMood, trends, manualKeywords,
+          sharedSpoonflower: shared,
+        }),
+      }, 28000);
+      if(platforms.includes('spoonflower')) img.licensingNote = shared.licensingNote;
+    } else {
+      data = await fetchJSON('/.netlify/functions/generate-ai-content', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          imageBase64: img.base64, mediaType: img.mediaType,
+          platforms, links: img.links,
+          includeColorMood, trends, manualKeywords,
+        }),
+      }, 28000);
+      if(data.results.licensingNote) img.licensingNote = data.results.licensingNote;
+    }
 
     platforms.forEach(p => { img.results[p] = data.results[p]; });
     img.loading = false;
@@ -346,6 +435,18 @@ async function generate(id){
     img.error = err.message || 'Something went wrong. Please try again.';
   }
   render();
+}
+
+// Runs generate() for every image in the batch that has at least one
+// platform selected, sequentially (keeps the shared-content cache warm
+// after the first call and avoids hammering the API with a burst of
+// simultaneous requests). onProgress(n, total) fires before each call.
+async function generateAll(onProgress){
+  const targets = images.filter(i => i.platforms.size > 0);
+  for(let n = 0; n < targets.length; n++){
+    if(onProgress) onProgress(n + 1, targets.length);
+    await generate(targets[n].id);
+  }
 }
 
 /* ────────────────────────────────────────────────────────────
