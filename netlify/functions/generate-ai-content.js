@@ -188,22 +188,77 @@ const SPOONFLOWER_NAME_CHARSET_RULE = `Spoonflower's title field only accepts le
 
 const SPOONFLOWER_USAGE_AUDIENCE_RULE = `USAGE AND AUDIENCE GUIDANCE FOR "description": where it genuinely and naturally fits what's actually in this image (never force it onto a design it doesn't suit), work in a room/use-case and/or an audience descriptor, since these are real things buyers and licensing scouts search and filter by. Examples of room/use-case words: living room, bedroom, nursery, kids room, playroom, bathroom. Examples of audience words: girls, boys, unisex, toddlers, baby, kids, adults. Only include these if the design's actual scale, motif, and mood genuinely reads that way, a bold tropical leaf print might suit "living room," a small-scale bunny motif might suit "nursery" or "baby," and plenty of designs (an abstract geometric, a sophisticated floral) suit neither and should just skip this entirely rather than force a mismatched audience or room onto them. Note this is separate from the carrier product-type ban above, "living room" or "girls" are not product types, they're allowed and encouraged where they fit.`;
 
-function spoonflowerBlock(includeColorMood) {
-  const nameGuidance = includeColorMood
+// Split into standalone pieces so a "shared" (once per design) call and a
+// "colorway" (once per image) call can each request only the fields they
+// need, instead of every call regenerating all of name/description/
+// sharedTags/colorwayTags from scratch. See BATCH MODES section below for
+// how these get composed.
+
+function spoonflowerNameGuidance(includeColorMood) {
+  return includeColorMood
     ? `"name": Theme/Aesthetic + Style + Color, written as one natural phrase, not comma-separated parts. Lead with the theme/aesthetic word (see the theme prominence rule above, e.g. "Botanical," "Cottagecore," "Grandmillennial") rather than a literal motif noun, a literal motif word can appear later in the phrase as a supporting detail but should never be the lead word and should never number more than one or two. Spoonflower's real title limit is 75 characters, use close to that budget (aim for 60 to 75 characters). Include the theme, the technique or style, and this colorway's actual color in plain, concrete color language (e.g. "sage green," never just "green"). Because color differs per image, this means the name will differ across colorways of the same design.`
     : `"name": Theme/Aesthetic + Style + Theme/Layout descriptor, written as one natural phrase, not comma-separated parts. Lead with the theme/aesthetic word (see the theme prominence rule above, e.g. "Botanical," "Cottagecore," "Grandmillennial") rather than a literal motif noun, a literal motif word can appear later in the phrase as a supporting detail but should never be the lead word and should never number more than one or two. Spoonflower's real title limit is 75 characters, use close to that budget (aim for 60 to 75 characters) by including the theme, the technique or style, AND a layout or arrangement descriptor, never color or mood. Do not stop short just because color is excluded, use the freed-up characters for other genuinely descriptive, searchable words about the design itself. Because no color is included, this means the name will be identical across every colorway of this design.`;
+}
 
+const SPOONFLOWER_DESCRIPTION_GUIDANCE = `"description": Spoonflower's real description field limit is 150 characters, this is a hard platform cap, so stay AT OR UNDER 150 characters total including spaces. Spoonflower's own guidance treats title and tags, not description, as the fields their search engine actually uses, so description is shopper-facing persuasive copy, not a keyword-stuffing opportunity. Use as much of that 150 character budget as genuinely earns its place, mentioning the theme/aesthetic, the technique, and the overall mood, but do not pad with filler words just to get closer to the limit. A shorter description that reads cleanly and does its job is better than a longer one stretched to fill space. Always stay fully generic on color and mood here regardless of the toggle above, never name a specific color or mood word, so this exact same description text works identically across every colorway of this design. Do not mention any product type, see the product word rule above, focus entirely on the pattern itself. ${SPOONFLOWER_USAGE_AUDIENCE_RULE}`;
+
+const SPOONFLOWER_SHARED_TAGS_GUIDANCE = `"sharedTags": an array of exactly 8 lowercase tags, reusable across every colorway of this design. Lead with theme/aesthetic first, per the theme prominence rule above: 3 to 4 theme/aesthetic tags (the primary discovery driver, e.g. "botanical," "cottagecore," "grandmillennial," "coastal grandma"), then 1 to 2 literal motif tags kept minimal and secondary (the literal object drawn, e.g. "sprig," "leaf"), then 1 to 2 layout/arrangement tags (composition only, e.g. "tossed floral," "diagonal grid," "linear stripe," never a scale or size claim like "large scale" or "mini," see the scale rule above), then 1 to 2 style tags. Total must equal exactly 8, and theme/aesthetic tags should never be outnumbered by literal motif tags.`;
+
+const SPOONFLOWER_COLORWAY_TAGS_GUIDANCE = `"colorwayTags": an array of exactly 5 lowercase tags, unique to this specific colorway (color and mood, reflecting this image's actual look and feel): 3 concrete color name tags (specific names, e.g. "dusty rose," never just "pink"), 2 mood tags.`;
+
+// Full single-image mode (unchanged behavior): every field, every call.
+function spoonflowerBlock(includeColorMood) {
   return `
 SPOONFLOWER (the "Naming Assistant" rules, follow exactly):
 Return a "spoonflower" object with:
-- ${nameGuidance}
+- ${spoonflowerNameGuidance(includeColorMood)}
 ${SPOONFLOWER_NAME_CHARSET_RULE}
-- "description": Spoonflower's real description field limit is 150 characters, this is a hard platform cap, so stay AT OR UNDER 150 characters total including spaces. Spoonflower's own guidance treats title and tags, not description, as the fields their search engine actually uses, so description is shopper-facing persuasive copy, not a keyword-stuffing opportunity. Use as much of that 150 character budget as genuinely earns its place, mentioning the theme/aesthetic, the technique, and the overall mood, but do not pad with filler words just to get closer to the limit. A shorter description that reads cleanly and does its job is better than a longer one stretched to fill space. Always stay fully generic on color and mood here regardless of the toggle above, never name a specific color or mood word, so this exact same description text works identically across every colorway of this design. Do not mention any product type, see the product word rule above, focus entirely on the pattern itself. ${SPOONFLOWER_USAGE_AUDIENCE_RULE}
-- "sharedTags": an array of exactly 8 lowercase tags, reusable across every colorway of this design. Lead with theme/aesthetic first, per the theme prominence rule above: 3 to 4 theme/aesthetic tags (the primary discovery driver, e.g. "botanical," "cottagecore," "grandmillennial," "coastal grandma"), then 1 to 2 literal motif tags kept minimal and secondary (the literal object drawn, e.g. "sprig," "leaf"), then 1 to 2 layout/arrangement tags (composition only, e.g. "tossed floral," "diagonal grid," "linear stripe," never a scale or size claim like "large scale" or "mini," see the scale rule above), then 1 to 2 style tags. Total must equal exactly 8, and theme/aesthetic tags should never be outnumbered by literal motif tags.
-- "colorwayTags": an array of exactly 5 lowercase tags, unique to this specific colorway (color and mood, reflecting this image's actual look and feel): 3 concrete color name tags (specific names, e.g. "dusty rose," never just "pink"), 2 mood tags.
+- ${SPOONFLOWER_DESCRIPTION_GUIDANCE}
+- ${SPOONFLOWER_SHARED_TAGS_GUIDANCE}
+- ${SPOONFLOWER_COLORWAY_TAGS_GUIDANCE}
 ${TAG_LENGTH_RULE}
 ${TAG_SEARCH_BEHAVIOR_RULE}
 Together sharedTags and colorwayTags total exactly 13 tags, following the TACO (Theme, Audience, Color, Object) structure overall, deliberately without a Scale element since absolute size can't be judged from the uploaded image, see the scale rule above. Theme leads that structure for a reason, see the theme prominence rule. No word in any tag may repeat a word already used in "name". Specific color names required throughout, never a bare color word alone.`;
+}
+
+// BATCH MODE, phase 1 ("shared"): run once per design, from one
+// representative image, to produce the fields that are meant to be
+// identical across every colorway. Only includes "name" when color/mood
+// is OFF (when it's on, name becomes colorway-specific, see phase 2).
+function spoonflowerSharedBlock(includeColorMood) {
+  const nameLine = includeColorMood
+    ? `` // name is generated per-colorway in phase 2 instead
+    : `- ${spoonflowerNameGuidance(includeColorMood)}\n${SPOONFLOWER_NAME_CHARSET_RULE}\n`;
+  return `
+SPOONFLOWER (the "Naming Assistant" rules, follow exactly):
+This design will be sold in multiple colorways (the same design printed in different color palettes). You are analyzing ONE representative image to generate the fields that are reused, unchanged, across every colorway of this design. Do not describe or reference this specific image's colors or mood anywhere in your output.
+Return a "spoonflower" object with:
+${nameLine}- ${SPOONFLOWER_DESCRIPTION_GUIDANCE}
+- ${SPOONFLOWER_SHARED_TAGS_GUIDANCE}
+${TAG_LENGTH_RULE}
+${TAG_SEARCH_BEHAVIOR_RULE}
+This is 8 of the design's total 13 tags (the other 5, colorway-specific, are generated separately per colorway). Theme leads the tag mix for a reason, see the theme prominence rule.${includeColorMood ? "" : ' No word in any tag may repeat a word already used in "name".'} Specific color names required throughout if any are used, never a bare color word alone.`;
+}
+
+// BATCH MODE, phase 2 ("colorway"): run once per image, using the phase 1
+// output as fixed context, to produce only what genuinely differs per
+// colorway: the 5 colorwayTags, plus "name" too when color/mood is ON.
+function spoonflowerColorwayBlock(includeColorMood, sharedSpoonflower) {
+  const nameLine = includeColorMood
+    ? `- ${spoonflowerNameGuidance(includeColorMood)}\n${SPOONFLOWER_NAME_CHARSET_RULE}\n`
+    : ``;
+  const sharedContext = `For reference, this is the rest of the design's already-finalized Spoonflower content (do not regenerate or repeat it, it's provided only so your tags don't duplicate a word already used in it):
+Name: "${sharedSpoonflower && sharedSpoonflower.name ? sharedSpoonflower.name : "(not yet set, will be generated alongside your colorway name)"}"
+Description: "${sharedSpoonflower && sharedSpoonflower.description ? sharedSpoonflower.description : ""}"
+Shared tags: ${sharedSpoonflower && Array.isArray(sharedSpoonflower.sharedTags) ? sharedSpoonflower.sharedTags.join(", ") : ""}`;
+  return `
+SPOONFLOWER (the "Naming Assistant" rules, follow exactly):
+${sharedContext}
+Return a "spoonflower" object with just:
+${nameLine}- ${SPOONFLOWER_COLORWAY_TAGS_GUIDANCE}
+${TAG_LENGTH_RULE}
+${TAG_SEARCH_BEHAVIOR_RULE}
+This is the colorway-specific 5 of the design's total 13 tags. No word in any tag may repeat a word already used in the name shown above${includeColorMood ? " or in the name you generate here" : ""}. Specific color names required throughout, never a bare color word alone.`;
 }
 
 const PINTEREST_BLOCK = `
@@ -226,12 +281,9 @@ Return an "instagram" object with:
 ${PRODUCT_WORD_RULE_SOCIAL}
 {{INSTAGRAM_LINK_INSTRUCTION}}`;
 
-function buildSystemPrompt(platforms, links, opts) {
-  const { includeColorMood, trends, manualKeywords } = opts;
+const INTRO_PROMPT = `You are a visual merchandising copywriter for a surface pattern designer who licenses repeating pattern designs across many product types, sold to both individual buyers and brands/licensing scouts. You will be shown one image of a pattern design. Analyze it directly (technique, motifs, colors, layout, mood) and use that analysis to write listing content. Do not ask the user anything, do not invent a keyword prompt, work only from what you see in the image.`;
 
-  let prompt = `You are a visual merchandising copywriter for a surface pattern designer who licenses repeating pattern designs across many product types, sold to both individual buyers and brands/licensing scouts. You will be shown one image of a pattern design. Analyze it directly (technique, motifs, colors, layout, mood) and use that analysis to write listing content. Do not ask the user anything, do not invent a keyword prompt, work only from what you see in the image.
-
-${TONE_GOAL}
+const SHARED_RULES_BLOCK = (trends, manualKeywords) => `${TONE_GOAL}
 
 ${FORMAT_RULE}
 
@@ -243,7 +295,31 @@ ${SCALE_CLAIM_RULE}
 
 ${THEME_PROMINENCE_RULE}
 
-${PRODUCT_WORD_RULE}${buildTrendBlock(trends)}${buildManualKeywordBlock(manualKeywords)}
+${PRODUCT_WORD_RULE}${buildTrendBlock(trends)}${buildManualKeywordBlock(manualKeywords)}`;
+
+function pinterestBlock(links) {
+  const linkInstruction = links.pinterest
+    ? `A destination link was provided: ${links.pinterest}. Do not put the raw URL inside "description", instead work a natural soft call to action around visiting the link into the description's final sentence, and also return it unchanged in a "pinLink" field on the pinterest object.`
+    : `No destination link was provided, omit any "pinLink" field.`;
+  return PINTEREST_BLOCK.replace("{{PINTEREST_LINK_INSTRUCTION}}", linkInstruction);
+}
+
+function instagramBlock(links) {
+  const linkInstruction = links.instagram
+    ? `A "link in bio" destination was provided: ${links.instagram}. Reference it naturally in the caption's call to action (e.g. "link in bio"), do not paste the raw URL into the caption, and also return the link unchanged in a "bioLink" field on the instagram object.`
+    : `No link was provided, omit any "bioLink" field.`;
+  return INSTAGRAM_BLOCK.replace("{{INSTAGRAM_LINK_INSTRUCTION}}", linkInstruction);
+}
+
+// mode "full" (default/legacy): everything, every call. Used for
+// single-image runs where there's no sibling colorway to share content
+// with, so splitting the call would add overhead for no benefit.
+function buildFullSystemPrompt(platforms, links, opts) {
+  const { includeColorMood, trends, manualKeywords } = opts;
+
+  let prompt = `${INTRO_PROMPT}
+
+${SHARED_RULES_BLOCK(trends, manualKeywords)}
 
 ${LICENSING_FLAG_RULE}
 
@@ -252,20 +328,59 @@ Write content for the following sections only, and return ONLY a single raw JSON
 `;
 
   if (platforms.includes("spoonflower")) prompt += `\n${spoonflowerBlock(includeColorMood)}\n`;
+  if (platforms.includes("pinterest")) prompt += `\n${pinterestBlock(links)}\n`;
+  if (platforms.includes("instagram")) prompt += `\n${instagramBlock(links)}\n`;
 
-  if (platforms.includes("pinterest")) {
-    const linkInstruction = links.pinterest
-      ? `A destination link was provided: ${links.pinterest}. Do not put the raw URL inside "description", instead work a natural soft call to action around visiting the link into the description's final sentence, and also return it unchanged in a "pinLink" field on the pinterest object.`
-      : `No destination link was provided, omit any "pinLink" field.`;
-    prompt += `\n${PINTEREST_BLOCK.replace("{{PINTEREST_LINK_INSTRUCTION}}", linkInstruction)}\n`;
-  }
+  prompt += `\n${SELF_CHECK_RULE}\n`;
 
-  if (platforms.includes("instagram")) {
-    const linkInstruction = links.instagram
-      ? `A "link in bio" destination was provided: ${links.instagram}. Reference it naturally in the caption's call to action (e.g. "link in bio"), do not paste the raw URL into the caption, and also return the link unchanged in a "bioLink" field on the instagram object.`
-      : `No link was provided, omit any "bioLink" field.`;
-    prompt += `\n${INSTAGRAM_BLOCK.replace("{{INSTAGRAM_LINK_INSTRUCTION}}", linkInstruction)}\n`;
-  }
+  return prompt;
+}
+
+// mode "shared": batch phase 1, run once per design (from the main image)
+// to produce only the Spoonflower fields meant to be identical across
+// every colorway: description, sharedTags, name (only when color/mood is
+// off), and the one-time licensingNote.
+function buildSharedSystemPrompt(opts) {
+  const { includeColorMood, trends, manualKeywords } = opts;
+
+  const returnKeys = includeColorMood
+    ? `{ "spoonflower": { "description": "...", "sharedTags": [...] }, "licensingNote": "..." }`
+    : `{ "spoonflower": { "name": "...", "description": "...", "sharedTags": [...] }, "licensingNote": "..." }`;
+
+  return `${INTRO_PROMPT}
+
+${SHARED_RULES_BLOCK(trends, manualKeywords)}
+
+${LICENSING_FLAG_RULE}
+
+Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
+${returnKeys}
+${spoonflowerSharedBlock(includeColorMood)}
+
+${SELF_CHECK_RULE}
+`;
+}
+
+// mode "colorway": batch phase 2, run once per image. Fills in only what
+// legitimately varies per colorway (Spoonflower colorwayTags, plus name
+// when color/mood is on) alongside Pinterest/Instagram, which always
+// reflect each image's own color and mood regardless of the toggle.
+function buildColorwaySystemPrompt(platforms, links, opts) {
+  const { includeColorMood, trends, manualKeywords, sharedSpoonflower } = opts;
+
+  const keys = platforms.map((p) => `"${p}": {...}`).join(", ");
+
+  let prompt = `${INTRO_PROMPT}
+
+${SHARED_RULES_BLOCK(trends, manualKeywords)}
+
+Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
+{ ${keys} }
+`;
+
+  if (platforms.includes("spoonflower")) prompt += `\n${spoonflowerColorwayBlock(includeColorMood, sharedSpoonflower)}\n`;
+  if (platforms.includes("pinterest")) prompt += `\n${pinterestBlock(links)}\n`;
+  if (platforms.includes("instagram")) prompt += `\n${instagramBlock(links)}\n`;
 
   prompt += `\n${SELF_CHECK_RULE}\n`;
 
@@ -372,9 +487,7 @@ function enforceCharacterLimits(parsed) {
   return parsed;
 }
 
-async function callAPI(apiKey, imageBase64, mediaType, platforms, links, opts) {
-  const systemPrompt = buildSystemPrompt(platforms, links, opts);
-
+async function callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -393,7 +506,7 @@ async function callAPI(apiKey, imageBase64, mediaType, platforms, links, opts) {
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
-          { type: "text", text: `Analyze this pattern image and generate the requested sections: ${platforms.join(", ")}. Return only the JSON object described in your instructions.` },
+          { type: "text", text: userText },
         ],
       }],
     }),
@@ -418,69 +531,23 @@ async function callAPI(apiKey, imageBase64, mediaType, platforms, links, opts) {
   }
 }
 
-exports.handler = async function (event) {
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
-
-  let imageBase64, mediaType, platforms, links, includeColorMood, trends, manualKeywords;
+// Runs one API call (with its one-retry-on-parse-failure behavior) given
+// an already-built system prompt and user text. Shared by all three modes
+// below so the retry/error-handling logic isn't duplicated three times.
+async function runCall(apiKey, imageBase64, mediaType, systemPrompt, userText) {
   try {
-    const body = JSON.parse(event.body || "{}");
-    ({ imageBase64, mediaType, platforms, links, includeColorMood, trends, manualKeywords } = body);
-    if (!imageBase64 || typeof imageBase64 !== "string") throw new Error("Missing image");
-    if (!Array.isArray(platforms) || platforms.length === 0) throw new Error("Missing platforms");
-    const allowed = new Set(["spoonflower", "pinterest", "instagram"]);
-    if (!platforms.every((p) => allowed.has(p))) throw new Error("Invalid platform");
-    mediaType = mediaType || "image/jpeg";
-    links = links || {};
-    includeColorMood = !!includeColorMood;
-    trends = trends || null;
-    manualKeywords = typeof manualKeywords === "string" ? manualKeywords : "";
-  } catch (e) {
-    return {
-      statusCode: 400,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Invalid request body" }),
-    };
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "API key not configured" }),
-    };
-  }
-
-  const opts = { includeColorMood, trends, manualKeywords };
-
-  try {
-    const { parsed, usage } = await callAPI(apiKey, imageBase64, mediaType, platforms, links, opts);
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ results: parsed, usage }),
-    };
+    const { parsed, usage } = await callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText);
+    return { statusCode: 200, results: parsed, usage };
   } catch (err) {
-    // Retry once on a parse failure — self-corrects transient formatting
-    // hiccups without the user needing to manually retry.
     if (err.rawText !== undefined) {
       try {
-        const retry = await callAPI(apiKey, imageBase64, mediaType, platforms, links, opts);
-        return {
-          statusCode: 200,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ results: retry.parsed, usage: retry.usage }),
-        };
+        const retry = await callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText);
+        return { statusCode: 200, results: retry.parsed, usage: retry.usage };
       } catch (err2) {
         return {
           statusCode: 502,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            error: "The AI returned unreadable formatting twice in a row. Try generating again.",
-            rawText: (err2.rawText || "").slice(0, 500),
-          }),
+          error: "The AI returned unreadable formatting twice in a row. Try generating again.",
+          rawText: (err2.rawText || "").slice(0, 500),
         };
       }
     }
@@ -488,10 +555,114 @@ exports.handler = async function (event) {
     const friendly = status === 429 ? "Rate limited by Anthropic, wait a moment and try again."
       : status === 529 ? "Anthropic is overloaded right now, try again shortly."
       : (err.message || "Server error");
-    return {
-      statusCode: status,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: friendly }),
-    };
+    return { statusCode: status, error: friendly };
   }
+}
+
+function respond(statusCode, body) {
+  return { statusCode, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+}
+
+exports.handler = async function (event) {
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch (e) {
+    return respond(400, { error: "Invalid request body" });
+  }
+
+  const mode = body.mode === "shared" || body.mode === "colorway" ? body.mode : "full";
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return respond(500, { error: "API key not configured" });
+
+  const allowedPlatforms = new Set(["spoonflower", "pinterest", "instagram"]);
+
+  // ── mode "shared": batch phase 1, once per design ─────────────────
+  if (mode === "shared") {
+    let imageBase64, mediaType, includeColorMood, trends, manualKeywords;
+    try {
+      ({ imageBase64, mediaType, includeColorMood, trends, manualKeywords } = body);
+      if (!imageBase64 || typeof imageBase64 !== "string") throw new Error("Missing image");
+      mediaType = mediaType || "image/jpeg";
+      includeColorMood = !!includeColorMood;
+      trends = trends || null;
+      manualKeywords = typeof manualKeywords === "string" ? manualKeywords : "";
+    } catch (e) {
+      return respond(400, { error: "Invalid request body" });
+    }
+
+    const systemPrompt = buildSharedSystemPrompt({ includeColorMood, trends, manualKeywords });
+    const userText = `Analyze this pattern image and generate the shared, design-level content that will be reused across every colorway. Return only the JSON object described in your instructions.`;
+    const result = await runCall(apiKey, imageBase64, mediaType, systemPrompt, userText);
+    if (result.statusCode !== 200) return respond(result.statusCode, { error: result.error, rawText: result.rawText });
+    return respond(200, { results: result.results, usage: result.usage });
+  }
+
+  // ── mode "colorway": batch phase 2, once per image ─────────────────
+  if (mode === "colorway") {
+    let imageBase64, mediaType, platforms, links, includeColorMood, trends, manualKeywords, sharedSpoonflower;
+    try {
+      ({ imageBase64, mediaType, platforms, links, includeColorMood, trends, manualKeywords, sharedSpoonflower } = body);
+      if (!imageBase64 || typeof imageBase64 !== "string") throw new Error("Missing image");
+      if (!Array.isArray(platforms) || platforms.length === 0) throw new Error("Missing platforms");
+      if (!platforms.every((p) => allowedPlatforms.has(p))) throw new Error("Invalid platform");
+      if (platforms.includes("spoonflower") && (!sharedSpoonflower || typeof sharedSpoonflower !== "object")) {
+        throw new Error("Missing sharedSpoonflower content for colorway mode");
+      }
+      mediaType = mediaType || "image/jpeg";
+      links = links || {};
+      includeColorMood = !!includeColorMood;
+      trends = trends || null;
+      manualKeywords = typeof manualKeywords === "string" ? manualKeywords : "";
+    } catch (e) {
+      return respond(400, { error: e.message || "Invalid request body" });
+    }
+
+    const opts = { includeColorMood, trends, manualKeywords, sharedSpoonflower };
+    const systemPrompt = buildColorwaySystemPrompt(platforms, links, opts);
+    const userText = `Analyze this pattern image and generate the requested colorway-specific sections: ${platforms.join(", ")}. Return only the JSON object described in your instructions.`;
+    const result = await runCall(apiKey, imageBase64, mediaType, systemPrompt, userText);
+    if (result.statusCode !== 200) return respond(result.statusCode, { error: result.error, rawText: result.rawText });
+
+    // Merge the cached shared Spoonflower fields back in so the response
+    // shape matches full mode (name/description/sharedTags/colorwayTags
+    // all present) and the frontend doesn't need mode-specific rendering.
+    const merged = result.results;
+    if (platforms.includes("spoonflower") && sharedSpoonflower) {
+      merged.spoonflower = {
+        name: merged.spoonflower && merged.spoonflower.name ? merged.spoonflower.name : sharedSpoonflower.name,
+        description: sharedSpoonflower.description,
+        sharedTags: sharedSpoonflower.sharedTags,
+        colorwayTags: merged.spoonflower ? merged.spoonflower.colorwayTags : [],
+      };
+    }
+    return respond(200, { results: merged, usage: result.usage });
+  }
+
+  // ── mode "full" (default/legacy): everything in one call ──────────
+  let imageBase64, mediaType, platforms, links, includeColorMood, trends, manualKeywords;
+  try {
+    ({ imageBase64, mediaType, platforms, links, includeColorMood, trends, manualKeywords } = body);
+    if (!imageBase64 || typeof imageBase64 !== "string") throw new Error("Missing image");
+    if (!Array.isArray(platforms) || platforms.length === 0) throw new Error("Missing platforms");
+    if (!platforms.every((p) => allowedPlatforms.has(p))) throw new Error("Invalid platform");
+    mediaType = mediaType || "image/jpeg";
+    links = links || {};
+    includeColorMood = !!includeColorMood;
+    trends = trends || null;
+    manualKeywords = typeof manualKeywords === "string" ? manualKeywords : "";
+  } catch (e) {
+    return respond(400, { error: "Invalid request body" });
+  }
+
+  const opts = { includeColorMood, trends, manualKeywords };
+  const systemPrompt = buildFullSystemPrompt(platforms, links, opts);
+  const userText = `Analyze this pattern image and generate the requested sections: ${platforms.join(", ")}. Return only the JSON object described in your instructions.`;
+  const result = await runCall(apiKey, imageBase64, mediaType, systemPrompt, userText);
+  if (result.statusCode !== 200) return respond(result.statusCode, { error: result.error, rawText: result.rawText });
+  return respond(200, { results: result.results, usage: result.usage });
 };
