@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Content Generator — Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:    #192231;
+  --forest:  #404A42;
+  --linen:   #EDDBCD;
+  --white:   #F4F4F4;
+  --linen-2: #E3CEC0;
+  --linen-3: #D9C5B5;
+  --navy-2:  #232E40;
+  --gold:    #C0B283;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-ui:    'Outfit', system-ui, sans-serif;
+  --r:   12px;
+  --r-sm: 8px;
+  --r-xs: 5px;
+  --sh:  0 1px 4px rgba(25,34,49,.06);
+  --t:   all 0.18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-ui);background:var(--linen);color:var(--navy);}
+.content{padding:20px 16px 80px;max-width:720px;margin:0 auto;}
+
+.card{background:var(--white);border:1px solid var(--linen-3);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh);}
+.card-title{font-family:var(--font-serif);font-size:16px;font-weight:400;margin-bottom:10px;}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;font-weight:400;letter-spacing:.3px;transition:var(--t);white-space:nowrap;line-height:1;}
+.btn-primary{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.btn-primary:hover{background:var(--navy-2);}
+.btn-primary:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-ghost{background:none;color:var(--forest);border-color:var(--linen-3);}
+.btn-ghost:hover{background:var(--linen);border-color:var(--linen-2);}
+.btn-sm{padding:6px 11px;font-size:11px;}
+
+/* ── Upload ── */
+.upload-box{border:1.5px dashed var(--linen-3);border-radius:var(--r-sm);padding:24px 18px;text-align:center;cursor:pointer;transition:var(--t);background:var(--linen);}
+.upload-box:hover,.upload-box.drag-over{border-color:var(--navy);background:var(--linen-2);}
+.upload-title{font-size:13px;color:var(--navy);font-weight:400;margin-bottom:4px;}
+.upload-hint{font-size:11px;color:#A0B4C4;font-weight:300;}
+#file-input{display:none;}
+
+/* ── Filmstrip ── */
+.filmstrip-wrap{margin-bottom:14px;}
+.filmstrip{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch;}
+.film-thumb{position:relative;flex-shrink:0;width:60px;height:60px;border-radius:var(--r-xs);overflow:hidden;border:2px solid transparent;cursor:pointer;background:var(--white);}
+.film-thumb.active{border-color:var(--navy);}
+.film-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.film-star{position:absolute;top:2px;left:2px;font-size:9px;background:var(--gold);color:var(--navy);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;}
+.film-status{position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1px solid white;}
+.film-status.done{background:#5C8A6B;}
+.film-status.err{background:#A85C4A;}
+.film-status.loading{background:var(--gold);}
+.film-remove{position:absolute;top:1px;right:1px;background:rgba(25,34,49,.65);color:white;font-size:9px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1;}
+.add-more-thumb{flex-shrink:0;width:60px;height:60px;border-radius:var(--r-xs);border:1.5px dashed var(--linen-3);display:flex;align-items:center;justify-content:center;font-size:22px;color:#A0B4C4;cursor:pointer;background:var(--linen);}
+
+/* ── Design bar ── */
+.design-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 4px;margin-bottom:6px;font-size:11.5px;color:var(--forest);}
+.switch{position:relative;width:34px;height:19px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:var(--linen-3);border-radius:20px;cursor:pointer;transition:var(--t);}
+.slider:before{content:"";position:absolute;width:13px;height:13px;left:3px;top:3px;background:white;border-radius:50%;transition:var(--t);}
+.switch input:checked + .slider{background:var(--navy);}
+.switch input:checked + .slider:before{transform:translateX(15px);}
+.color-mood-row{display:flex;align-items:center;gap:8px;}
+
+/* ── Workspace ── */
+.workspace-top{display:flex;gap:12px;margin-bottom:14px;}
+.ws-preview{width:88px;height:88px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--linen-3);flex-shrink:0;}
+.ws-meta{flex:1;min-width:0;}
+.ws-name{font-size:12.5px;color:var(--navy);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ws-dims{font-size:10.5px;color:#A0B4C4;margin-top:2px;margin-bottom:6px;}
+.main-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:3px 9px;border-radius:12px;border:1px solid var(--linen-3);cursor:pointer;user-select:none;color:var(--forest);}
+.main-pill.checked{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:500;}
+
+.checkbox-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.checkbox-pill{display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:var(--r-sm);background:var(--linen);border:1px solid var(--linen-3);cursor:pointer;transition:var(--t);font-size:12px;color:var(--forest);user-select:none;}
+.checkbox-pill.checked{background:var(--navy);border-color:var(--navy);color:var(--white);}
+.checkbox-pill input{width:12px;height:12px;cursor:pointer;accent-color:var(--navy);}
+
+.link-input{width:100%;padding:8px 10px;border:1px solid var(--linen-3);border-radius:var(--r-xs);background:var(--white);font-family:var(--font-ui);font-size:12px;color:var(--navy);outline:none;margin-bottom:6px;}
+.link-input:focus{border-color:var(--navy);}
+
+textarea.keyword-input{width:100%;padding:9px 11px;border:1px solid var(--linen-3);border-radius:var(--r-sm);background:var(--linen);font-family:var(--font-ui);font-size:12px;color:var(--navy);outline:none;resize:vertical;min-height:40px;}
+textarea.keyword-input:focus{border-color:var(--navy);background:var(--white);}
+.keyword-label{font-size:11px;color:#8A9186;margin-bottom:5px;display:block;}
+
+.loading-row{display:flex;align-items:center;gap:8px;padding:10px 0;color:#8A9186;font-size:12px;}
+.spinner{width:14px;height:14px;border:2px solid var(--linen-3);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-box{background:#FBEDE9;border:1px solid #E3B7A6;border-radius:var(--r-xs);padding:8px 10px;font-size:11.5px;color:#8A3D2A;margin:8px 0;}
+
+.results-block{margin-top:14px;border-top:1px solid var(--linen-3);padding-top:12px;}
+.platform-badge{display:inline-block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:400;margin-bottom:6px;}
+.field-block{margin-bottom:12px;}
+.field-block:last-child{margin-bottom:0;}
+.field-label{font-size:10.5px;color:#8A9186;font-weight:300;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
+.field-value{width:100%;border:1px solid var(--linen-3);border-radius:var(--r-xs);background:var(--linen);font-family:var(--font-ui);font-size:12px;color:var(--navy);padding:8px 10px;line-height:1.6;resize:vertical;outline:none;min-height:38px;}
+.field-value:focus{border-color:var(--navy);background:var(--white);}
+.tag-group-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#A0B4C4;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
+.tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.tag-chip{font-size:10.5px;padding:4px 9px;border-radius:6px;background:var(--linen);border:1px solid var(--linen-3);color:var(--forest);cursor:pointer;user-select:none;}
+.tag-chip.unselected{opacity:.4;text-decoration:line-through;}
+
+.empty-state{text-align:center;padding:40px 20px;color:#A0B4C4;font-size:12.5px;}
+
+::-webkit-scrollbar{height:5px;width:5px;}
+::-webkit-scrollbar-thumb{background:var(--linen-3);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="content">
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-title">Upload Images</div>
+    <div class="upload-box" id="upload-box">
+      <div class="upload-title">Click to upload, or drag and drop</div>
+      <div class="upload-hint">PNG or JPG, up to 10 images. First one becomes the main design.</div>
+    </div>
+    <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" multiple>
+  </div>
+
+  <!-- Filmstrip -->
+  <div class="filmstrip-wrap" id="filmstrip-wrap" style="display:none;">
+    <div class="filmstrip" id="filmstrip"></div>
+  </div>
+
+  <!-- Design bar -->
+  <div class="design-bar" id="design-bar" style="display:none;">
+    <div class="color-mood-row">
+      <label class="switch"><input type="checkbox" id="color-mood-toggle"><span class="slider"></span></label>
+      <span>Include color/mood in title &amp; description</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="trend-status" style="color:#A0B4C4;"></span>
+      <button class="btn btn-ghost btn-sm" id="clear-batch-btn">Clear all</button>
+    </div>
+  </div>
+
+  <!-- Workspace -->
+  <div class="card" id="workspace" style="display:none;"></div>
+
+  <div class="empty-state" id="empty-state">Upload an image to get started.</div>
+
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   State — one batch = one design group
+──────────────────────────────────────────────────────────── */
+let images = [];
+let activeId = null;
+let trends = null;
+let idCounter = 0;
+
+const uploadBox   = document.getElementById('upload-box');
+const fileInput   = document.getElementById('file-input');
+const filmstrip   = document.getElementById('filmstrip');
+const filmstripWrap = document.getElementById('filmstrip-wrap');
+const designBar   = document.getElementById('design-bar');
+const workspace   = document.getElementById('workspace');
+const emptyState  = document.getElementById('empty-state');
+const colorMoodToggle = document.getElementById('color-mood-toggle');
+const clearBatchBtn   = document.getElementById('clear-batch-btn');
+const trendStatus      = document.getElementById('trend-status');
+
+uploadBox.addEventListener('click', () => fileInput.click());
+['dragenter','dragover'].forEach(evt => uploadBox.addEventListener(evt, e => { e.preventDefault(); uploadBox.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(evt => uploadBox.addEventListener(evt, e => { e.preventDefault(); uploadBox.classList.remove('drag-over'); }));
+uploadBox.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+
+clearBatchBtn.addEventListener('click', () => {
+  if(images.length && !confirm('Clear all images and start a new design? Trend research cache will reset too.')) return;
+  images = []; activeId = null; trends = null;
+  trendStatus.textContent = '';
+  render();
+});
+
+function handleFiles(fileList){
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if(!files.length) return;
+  if(images.length + files.length > 10){
+    alert('Max 10 images per batch. Currently have ' + images.length + ', can add ' + Math.max(0,10-images.length) + ' more.');
+  }
+  files.slice(0, Math.max(0, 10 - images.length)).forEach(readAndResize);
+}
+
+function readAndResize(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      let targetW, targetH;
+      // Reduced from 1000px/0.88 quality to 800px/0.75 quality. This is
+      // still plenty of resolution for the model to read technique,
+      // motif, layout, and color accurately, but meaningfully cuts the
+      // upload payload size — which matters most on mobile connections,
+      // since a slow upload (not slow server processing) was confirmed
+      // as the actual cause of a prior timeout (function log showed
+      // 11s server-side duration well under both the client and server
+      // timeout ceilings, meaning the time was being lost in transit).
+      if(w === h){ targetW = 800; targetH = 800; }
+      else { const scale = 800 / Math.min(w,h); targetW = Math.round(w*scale); targetH = Math.round(h*scale); }
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW; canvas.height = targetH;
+      canvas.getContext('2d').drawImage(img, 0, 0, targetW, targetH);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      const base64 = dataUrl.split(',')[1];
+
+      const newImg = {
+        id: 'img-' + (idCounter++),
+        base64, mediaType: 'image/jpeg',
+        width: targetW, height: targetH,
+        name: file.name, dataUrl,
+        isMain: images.length === 0,
+        platforms: new Set(),
+        links: { pinterest: '', instagram: '' },
+        keywordOverride: '', showOverride: false,
+        results: {}, loading: false, error: null,
+      };
+      images.push(newImg);
+      if(activeId === null) activeId = newImg.id;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setMain(id){ images.forEach(img => img.isMain = (img.id === id)); render(); }
+function selectImage(id){ activeId = id; render(); }
+function removeImage(id){
+  images = images.filter(img => img.id !== id);
+  if(images.length && !images.some(i => i.isMain)) images[0].isMain = true;
+  if(activeId === id) activeId = images.length ? images[0].id : null;
+  render();
+}
+function togglePlatform(id, platform){
+  const img = images.find(i => i.id === id);
+  if(img.platforms.has(platform)) img.platforms.delete(platform);
+  else img.platforms.add(platform);
+  render();
+}
+
+/* ────────────────────────────────────────────────────────────
+   Network helper — timeout + safe JSON parsing
+   ────────────────────────────────────────────────────────────
+   Both Netlify functions can, in the worst case, run long enough to
+   hit Netlify's server-side function timeout (confirmed via function
+   logs hitting the 30s ceiling on research-trends). When that happens
+   Netlify does not return your function's JSON body, it returns its
+   own timeout response — and calling res.json() on that throws a
+   cryptic browser-specific error (Safari/WebKit renders this as
+   "The string did not match the expected pattern", which is its
+   generic message for a JSON.parse failure, not a useful description
+   of what actually happened).
+
+   This wrapper adds two layers of defense:
+   1. A client-side AbortController timeout, set just under Netlify's
+      server-side ceiling, so a hung request fails on our terms with a
+      clear message instead of waiting for the server to kill it.
+   2. Read the response as text first and JSON.parse it ourselves, so a
+      non-JSON body (timeout page, cold-start error page, etc) produces
+      a readable error instead of a browser-internal parse exception.
+──────────────────────────────────────────────────────────── */
+async function fetchJSON(url, options, timeoutMs = 28000){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res;
+  try {
+    res = await fetch(url, { ...options, signal: controller.signal });
+  } catch(err){
+    if(err.name === 'AbortError'){
+      throw new Error('The request took too long and timed out after ' + Math.round(timeoutMs/1000) + 's. This can happen when trend research or generation takes unusually long — try again.');
+    }
+    throw new Error('Network error: ' + (err.message || 'could not reach the server') + '. Check your connection and try again.');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const raw = await res.text();
+  let data;
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch(e){
+    throw new Error('Server returned an unreadable response (status ' + res.status + '). This usually means the function took too long to respond. Try again.');
+  }
+
+  if(!res.ok){
+    throw new Error(data.error || ('Server error (status ' + res.status + ')'));
+  }
+
+  return data;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Generate
+──────────────────────────────────────────────────────────── */
+async function generate(id){
+  const img = images.find(i => i.id === id);
+  const platforms = Array.from(img.platforms);
+  if(!platforms.length) return;
+
+  img.loading = true; img.error = null; render();
+
+  try {
+    if(!trends){
+      trendStatus.textContent = 'Researching trends…';
+      const tData = await fetchJSON('/.netlify/functions/research-trends', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ imageBase64: img.base64, mediaType: img.mediaType }),
+      }, 28000);
+      trends = tData.trends;
+      trendStatus.textContent = 'Trends cached (' + (trends.keywords||[]).length + ' keywords)';
+    }
+
+    const manualKeywords = (img.keywordOverride && img.keywordOverride.trim()) ? img.keywordOverride : '';
+
+    const data = await fetchJSON('/.netlify/functions/generate-ai-content', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        imageBase64: img.base64, mediaType: img.mediaType,
+        platforms, links: img.links,
+        includeColorMood: colorMoodToggle.checked,
+        trends, manualKeywords,
+      }),
+    }, 28000);
+
+    platforms.forEach(p => { img.results[p] = data.results[p]; });
+    img.loading = false;
+  } catch(err){
+    console.error(err);
+    img.loading = false;
+    img.error = err.message || 'Something went wrong. Please try again.';
+  }
+  render();
+}
+
+/* ────────────────────────────────────────────────────────────
+   Render
+──────────────────────────────────────────────────────────── */
+function render(){
+  emptyState.style.display = images.length ? 'none' : 'block';
+  filmstripWrap.style.display = images.length ? 'block' : 'none';
+  designBar.style.display = images.length ? 'flex' : 'none';
+  workspace.style.display = images.length ? 'block' : 'none';
+
+  renderFilmstrip();
+  if(images.length) renderWorkspace();
+}
+
+function renderFilmstrip(){
+  filmstrip.innerHTML = '';
+  images.forEach(img => {
+    const thumb = document.createElement('div');
+    thumb.className = 'film-thumb' + (img.id === activeId ? ' active' : '');
+    thumb.innerHTML = `
+      <img src="${img.dataUrl}">
+      ${img.isMain ? '<span class="film-star">★</span>' : ''}
+      <span class="film-remove">✕</span>
+      ${statusDot(img)}
+    `;
+    thumb.addEventListener('click', (e) => {
+      if(e.target.classList.contains('film-remove')){ removeImage(img.id); return; }
+      selectImage(img.id);
+    });
+    filmstrip.appendChild(thumb);
+  });
+  const addMore = document.createElement('div');
+  addMore.className = 'add-more-thumb';
+  addMore.textContent = '+';
+  addMore.title = 'Add more images';
+  addMore.addEventListener('click', () => fileInput.click());
+  if(images.length < 10) filmstrip.appendChild(addMore);
+}
+
+function statusDot(img){
+  if(img.loading) return '<span class="film-status loading"></span>';
+  if(img.error) return '<span class="film-status err"></span>';
+  if(Object.keys(img.results).length) return '<span class="film-status done"></span>';
+  return '';
+}
+
+function renderWorkspace(){
+  const img = images.find(i => i.id === activeId);
+  if(!img) return;
+  workspace.innerHTML = '';
+
+  const top = document.createElement('div');
+  top.className = 'workspace-top';
+  top.innerHTML = `
+    <img class="ws-preview" src="${img.dataUrl}">
+    <div class="ws-meta">
+      <div class="ws-name">${escapeHtml(img.name)}</div>
+      <div class="ws-dims">${img.width} × ${img.height}px</div>
+      <span class="main-pill ${img.isMain ? 'checked' : ''}" data-action="set-main">${img.isMain ? '★ Main design' : 'Set as main'}</span>
+    </div>
+  `;
+  top.querySelector('[data-action="set-main"]').addEventListener('click', () => setMain(img.id));
+  workspace.appendChild(top);
+
+  const checkboxRow = document.createElement('div');
+  checkboxRow.className = 'checkbox-row';
+  ['spoonflower','pinterest','instagram'].forEach(p => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-pill' + (img.platforms.has(p) ? ' checked' : '');
+    label.innerHTML = `<input type="checkbox" ${img.platforms.has(p) ? 'checked' : ''}> ${p[0].toUpperCase()+p.slice(1)}`;
+    label.querySelector('input').addEventListener('change', () => togglePlatform(img.id, p));
+    checkboxRow.appendChild(label);
+  });
+  workspace.appendChild(checkboxRow);
+
+  if(img.platforms.has('pinterest')){
+    const inp = document.createElement('input');
+    inp.className = 'link-input'; inp.type = 'url'; inp.placeholder = 'Pinterest link (optional)';
+    inp.value = img.links.pinterest;
+    inp.addEventListener('input', e => img.links.pinterest = e.target.value);
+    workspace.appendChild(inp);
+  }
+  if(img.platforms.has('instagram')){
+    const inp = document.createElement('input');
+    inp.className = 'link-input'; inp.type = 'url'; inp.placeholder = 'Instagram link in bio (optional)';
+    inp.value = img.links.instagram;
+    inp.addEventListener('input', e => img.links.instagram = e.target.value);
+    workspace.appendChild(inp);
+  }
+
+  const kwLabel = document.createElement('label');
+  kwLabel.className = 'keyword-label';
+  kwLabel.textContent = 'Manual keywords for this image (optional)';
+  workspace.appendChild(kwLabel);
+
+  const ta = document.createElement('textarea');
+  ta.className = 'keyword-input'; ta.style.marginBottom = '10px';
+  ta.placeholder = 'e.g. cottagecore, grandmillennial, block print revival';
+  ta.value = img.keywordOverride;
+  ta.addEventListener('input', e => img.keywordOverride = e.target.value);
+  workspace.appendChild(ta);
+
+  const genBtn = document.createElement('button');
+  genBtn.className = 'btn btn-primary';
+  genBtn.style.width = '100%'; genBtn.style.justifyContent = 'center';
+  genBtn.textContent = img.loading ? 'Generating…' : 'Generate';
+  genBtn.disabled = img.loading || img.platforms.size === 0;
+  genBtn.addEventListener('click', () => generate(img.id));
+  workspace.appendChild(genBtn);
+
+  if(img.loading){
+    const lr = document.createElement('div');
+    lr.className = 'loading-row';
+    lr.innerHTML = `<div class="spinner"></div><span>Analyzing…</span>`;
+    workspace.appendChild(lr);
+  }
+
+  if(img.error){
+    const eb = document.createElement('div');
+    eb.className = 'err-box';
+    eb.textContent = img.error;
+    workspace.appendChild(eb);
+  }
+
+  if(Object.keys(img.results).length){
+    const resultsBlock = document.createElement('div');
+    resultsBlock.className = 'results-block';
+    ['spoonflower','pinterest','instagram'].forEach(p => {
+      if(img.results[p]) resultsBlock.appendChild(renderPlatformResult(p, img.results[p]));
+    });
+    workspace.appendChild(resultsBlock);
+  }
+}
+
+function renderPlatformResult(platform, data){
+  const wrap = document.createElement('div');
+  wrap.style.marginBottom = '14px';
+
+  const badge = document.createElement('div');
+  badge.className = 'platform-badge';
+  badge.textContent = platform;
+  wrap.appendChild(badge);
+
+  if(platform === 'spoonflower'){
+    wrap.appendChild(fieldBlock('Name', data.name));
+    wrap.appendChild(fieldBlock('Description', data.description, true));
+    wrap.appendChild(tagGroup('Shared tags (8) — same across every colorway', data.sharedTags));
+    wrap.appendChild(tagGroup('Colorway tags (5) — unique to this image', data.colorwayTags));
+  } else if(platform === 'pinterest'){
+    wrap.appendChild(fieldBlock('Title', data.title));
+    wrap.appendChild(fieldBlock('Description', data.description, true));
+    wrap.appendChild(fieldBlock('Alt text', data.altText, true));
+    if(data.pinLink) wrap.appendChild(fieldBlock('Pin link', data.pinLink));
+  } else if(platform === 'instagram'){
+    wrap.appendChild(fieldBlock('Caption', data.caption, true));
+    wrap.appendChild(tagGroup('Hashtags', (data.hashtags||[]).map(h => h.startsWith('#') ? h : '#'+h)));
+    wrap.appendChild(fieldBlock('Alt text', data.altText, true));
+    if(data.bioLink) wrap.appendChild(fieldBlock('Bio link', data.bioLink));
+  }
+  return wrap;
+}
+
+function fieldBlock(label, value, multiline){
+  const div = document.createElement('div');
+  div.className = 'field-block';
+  const safeValue = (value || '').replace(/</g,'&lt;');
+  div.innerHTML = `
+    <div class="field-label"><span>${label}</span><button class="btn btn-ghost btn-sm">Copy</button></div>
+    ${multiline ? `<textarea class="field-value" rows="3">${safeValue}</textarea>` : `<input class="field-value" value="${safeValue}">`}
+  `;
+  const target = div.querySelector('.field-value');
+  div.querySelector('button').addEventListener('click', () => copyText(target.value, div.querySelector('button')));
+  return div;
+}
+
+function tagGroup(label, tags){
+  tags = tags || [];
+  const selected = new Set(tags);
+  const div = document.createElement('div');
+  div.className = 'field-block';
+  const labelRow = document.createElement('div');
+  labelRow.className = 'tag-group-label';
+  const copyAllBtn = document.createElement('button');
+  copyAllBtn.className = 'btn btn-ghost btn-sm';
+  copyAllBtn.textContent = 'Copy all';
+  const copySelBtn = document.createElement('button');
+  copySelBtn.className = 'btn btn-ghost btn-sm';
+  copySelBtn.textContent = 'Copy selected';
+  copySelBtn.style.marginLeft = '4px';
+  const btnWrap = document.createElement('span');
+  btnWrap.appendChild(copyAllBtn); btnWrap.appendChild(copySelBtn);
+  labelRow.innerHTML = `<span>${label}</span>`;
+  labelRow.appendChild(btnWrap);
+  div.appendChild(labelRow);
+
+  const list = document.createElement('div');
+  list.className = 'tag-list';
+  tags.forEach(t => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.textContent = t;
+    chip.addEventListener('click', () => {
+      if(selected.has(t)){ selected.delete(t); chip.classList.add('unselected'); }
+      else { selected.add(t); chip.classList.remove('unselected'); }
+    });
+    list.appendChild(chip);
+  });
+  div.appendChild(list);
+
+  copyAllBtn.addEventListener('click', () => copyText(tags.join(', '), copyAllBtn));
+  copySelBtn.addEventListener('click', () => copyText(Array.from(selected).join(', '), copySelBtn));
+
+  return div;
+}
+
+function copyText(text, btn){
+  navigator.clipboard.writeText((text||'').trim());
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = orig; }, 1300);
+}
+
+function escapeHtml(s){ return (s||'').replace(/</g,'&lt;'); }
+
+render();
+</script>
+</body>
+</html>
