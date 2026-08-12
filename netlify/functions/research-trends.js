@@ -181,7 +181,13 @@ async function callAPI(apiKey, imageBase64, mediaType) {
       // Claude Sonnet 5 no longer accepts the temperature parameter at
       // all (even at a normal value) — it returns a 400 if present, so
       // it's omitted entirely rather than set to a specific number.
-      system: SYSTEM_PROMPT,
+      // SYSTEM_PROMPT never changes call to call (no dynamic interpolation
+      // in it at all), so it's cached with a 1-hour TTL — every call from
+      // every user for every design reuses the same cached prefix, not
+      // just repeat calls for the same design.
+      system: [
+        { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral", ttl: "1h" } },
+      ],
       messages: [{
         role: "user",
         content: [
