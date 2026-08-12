@@ -238,8 +238,25 @@ function readAndResize(file){
       // as the actual cause of a prior timeout (function log showed
       // 11s server-side duration well under both the client and server
       // timeout ceilings, meaning the time was being lost in transit).
-      if(w === h){ targetW = 800; targetH = 800; }
-      else { const scale = 800 / Math.min(w,h); targetW = Math.round(w*scale); targetH = Math.round(h*scale); }
+      //
+      // FIXED: this used to always scale to exactly 800px on the short
+      // side, which meant an image already SMALLER than 800px (e.g. a
+      // 300x300 upload) got scaled UP instead of left alone. Upscaling
+      // doesn't add real detail, it just interpolates blur, so it was
+      // pure wasted cost: more image tokens sent to the model for zero
+      // quality benefit (image tokens scale with pixel count, not with
+      // how much real detail is in the image). The scale factor is now
+      // capped at 1, so anything already at or under 800px passes
+      // through at its native size — only images LARGER than 800px get
+      // downscaled.
+      if (w === h) {
+        targetW = Math.min(w, 800);
+        targetH = Math.min(h, 800);
+      } else {
+        const scale = Math.min(800 / Math.min(w, h), 1); // never > 1 (never upscale)
+        targetW = Math.round(w * scale);
+        targetH = Math.round(h * scale);
+      }
       const canvas = document.createElement('canvas');
       canvas.width = targetW; canvas.height = targetH;
       canvas.getContext('2d').drawImage(img, 0, 0, targetW, targetH);
