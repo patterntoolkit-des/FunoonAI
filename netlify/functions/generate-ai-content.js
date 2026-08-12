@@ -243,22 +243,31 @@ This is 8 of the design's total 13 tags (the other 5, colorway-specific, are gen
 // BATCH MODE, phase 2 ("colorway"): run once per image, using the phase 1
 // output as fixed context, to produce only what genuinely differs per
 // colorway: the 5 colorwayTags, plus "name" too when color/mood is ON.
-function spoonflowerColorwayBlock(includeColorMood, sharedSpoonflower) {
+// Static half — the guidance/rules text, identical every time colorway
+// mode runs with the same includeColorMood setting. This is what goes in
+// the cached platform block.
+function spoonflowerColorwayStaticBlock(includeColorMood) {
   const nameLine = includeColorMood
     ? `- ${spoonflowerNameGuidance(includeColorMood)}\n${SPOONFLOWER_NAME_CHARSET_RULE}\n`
     : ``;
-  const sharedContext = `For reference, this is the rest of the design's already-finalized Spoonflower content (do not regenerate or repeat it, it's provided only so your tags don't duplicate a word already used in it):
-Name: "${sharedSpoonflower && sharedSpoonflower.name ? sharedSpoonflower.name : "(not yet set, will be generated alongside your colorway name)"}"
-Description: "${sharedSpoonflower && sharedSpoonflower.description ? sharedSpoonflower.description : ""}"
-Shared tags: ${sharedSpoonflower && Array.isArray(sharedSpoonflower.sharedTags) ? sharedSpoonflower.sharedTags.join(", ") : ""}`;
   return `
 SPOONFLOWER (the "Naming Assistant" rules, follow exactly):
-${sharedContext}
+The rest of this design's already-finalized Spoonflower content (name/description/sharedTags) is supplied separately below, for reference only — do not regenerate or repeat it, it's provided only so your tags don't duplicate a word already used in it.
 Return a "spoonflower" object with just:
 ${nameLine}- ${SPOONFLOWER_COLORWAY_TAGS_GUIDANCE}
 ${TAG_LENGTH_RULE}
 ${TAG_SEARCH_BEHAVIOR_RULE}
-This is the colorway-specific 5 of the design's total 13 tags. No word in any tag may repeat a word already used in the name shown above${includeColorMood ? " or in the name you generate here" : ""}. Specific color names required throughout, never a bare color word alone.`;
+This is the colorway-specific 5 of the design's total 13 tags. No word in any tag may repeat a word already used in the name shown below${includeColorMood ? " or in the name you generate here" : ""}. Specific color names required throughout, never a bare color word alone.`;
+}
+
+// Dynamic half — the actual finalized shared content, which is different
+// on every colorway call (it's the output of the phase-1 "shared" call
+// for this specific design). Appended uncached, after the cached blocks.
+function spoonflowerColorwayDynamicContext(sharedSpoonflower) {
+  return `Finalized shared Spoonflower content for this design:
+Name: "${sharedSpoonflower && sharedSpoonflower.name ? sharedSpoonflower.name : "(not yet set, will be generated alongside your colorway name)"}"
+Description: "${sharedSpoonflower && sharedSpoonflower.description ? sharedSpoonflower.description : ""}"
+Shared tags: ${sharedSpoonflower && Array.isArray(sharedSpoonflower.sharedTags) ? sharedSpoonflower.sharedTags.join(", ") : ""}`;
 }
 
 const PINTEREST_BLOCK = `
@@ -269,7 +278,7 @@ Return a "pinterest" object with:
 - "description": max 500 characters (Pinterest's real hard limit), written closer to 150 to 300 characters for readability, since only the first 50 to 60 characters show before the fold, and that opening needs to carry the strongest keyword phrase, which per the theme prominence rule should be the theme/aesthetic term. Reflect this image's actual color and mood. Describe what the design is and who it's for. Include one soft call to action. Avoid ALL CAPS and excessive exclamation points.
 - "altText": a plain, literal description of what is actually in the image, written for accessibility and a distinct search signal, not a marketing line. Literal motif words belong here even if they're kept minimal elsewhere, accessibility text should describe what's actually visible.
 ${PRODUCT_WORD_RULE_SOCIAL}
-{{PINTEREST_LINK_INSTRUCTION}}`;
+A per-image link instruction (whether a destination link was provided, and exactly how to use it) is supplied separately below — follow it exactly regarding the optional "pinLink" field.`;
 
 const INSTAGRAM_BLOCK = `
 INSTAGRAM:
@@ -279,11 +288,18 @@ Return an "instagram" object with:
 - "hashtags": an array of 8 to 15 hashtag strings (include the # symbol), a three-tier mix of broad, mid-niche, and small specific tags. Per the theme prominence rule above, weight this mix toward theme/aesthetic hashtags (e.g. "#cottagecore," "#grandmillennial," "#botanicalprint") over literal motif hashtags (e.g. "#leafprint," "#sprigfloral"), motif hashtags can appear but should be the minority of the set. Blend in relevant hashtags from the trend research below where they genuinely fit, but don't make the whole set trend-only, balance them with evergreen broad and mid-niche tags too so reach doesn't depend entirely on one moment's trends.
 - "altText": a plain, literal description of what is actually in the image, for accessibility. Literal motif words belong here even if they're kept minimal elsewhere, accessibility text should describe what's actually visible.
 ${PRODUCT_WORD_RULE_SOCIAL}
-{{INSTAGRAM_LINK_INSTRUCTION}}`;
+A per-image link instruction (whether a "link in bio" destination was provided, and exactly how to use it) is supplied separately below — follow it exactly regarding the optional "bioLink" field.`;
 
 const INTRO_PROMPT = `You are a visual merchandising copywriter for a surface pattern designer who licenses repeating pattern designs across many product types, sold to both individual buyers and brands/licensing scouts. You will be shown one image of a pattern design. Analyze it directly (technique, motifs, colors, layout, mood) and use that analysis to write listing content. Do not ask the user anything, do not invent a keyword prompt, work only from what you see in the image.`;
 
-const SHARED_RULES_BLOCK = (trends, manualKeywords) => `${TONE_GOAL}
+// NOTE: this used to be a function that spliced trend research and manual
+// keywords directly in, which meant the resulting string (and therefore
+// the prompt-caching prefix) changed on every single call. It's now a
+// plain static constant — trends/manualKeywords moved out to
+// buildDynamicContextBlock() below, which is appended at the very end of
+// the prompt, after the cached portion, so the cacheable rules text stays
+// byte-for-byte identical call to call.
+const SHARED_RULES_BLOCK = `${TONE_GOAL}
 
 ${FORMAT_RULE}
 
@@ -295,21 +311,88 @@ ${SCALE_CLAIM_RULE}
 
 ${THEME_PROMINENCE_RULE}
 
-${PRODUCT_WORD_RULE}${buildTrendBlock(trends)}${buildManualKeywordBlock(manualKeywords)}`;
+${PRODUCT_WORD_RULE}`;
 
-function pinterestBlock(links) {
-  const linkInstruction = links.pinterest
-    ? `A destination link was provided: ${links.pinterest}. Do not put the raw URL inside "description", instead work a natural soft call to action around visiting the link into the description's final sentence, and also return it unchanged in a "pinLink" field on the pinterest object.`
-    : `No destination link was provided, omit any "pinLink" field.`;
-  return PINTEREST_BLOCK.replace("{{PINTEREST_LINK_INSTRUCTION}}", linkInstruction);
+// Everything in this block is 100% static — identical text on every call,
+// every mode, every platform combo. This is the single largest chunk of
+// the prompt, so it's what benefits most from caching. It's assembled
+// once here and reused as the first (and biggest) cached system block by
+// all three modes (full/shared/colorway).
+const GLOBAL_STATIC_BLOCK = `${INTRO_PROMPT}
+
+${SHARED_RULES_BLOCK}
+
+${LICENSING_FLAG_RULE}
+
+${SELF_CHECK_RULE}`;
+
+// Colorway mode never asks for "licensingNote" (that's produced once, in
+// shared/full mode) — so it gets its own static global block without
+// LICENSING_FLAG_RULE, rather than reusing GLOBAL_STATIC_BLOCK and
+// risking the model adding an unwanted licensingNote field. Still fully
+// static and independently cacheable.
+const GLOBAL_STATIC_BLOCK_NO_LICENSING = `${INTRO_PROMPT}
+
+${SHARED_RULES_BLOCK}
+
+${SELF_CHECK_RULE}`;
+
+// Trend research + manual keywords + (for colorway mode) the finalized
+// shared-Spoonflower context all change on every call, so they're kept
+// out of any cached block and appended fresh each time as the final,
+// uncached piece of the system prompt.
+function buildDynamicContextBlock(trends, manualKeywords) {
+  const parts = [buildTrendBlock(trends), buildManualKeywordBlock(manualKeywords)].filter(Boolean);
+  return parts.join("\n");
 }
 
-function instagramBlock(links) {
-  const linkInstruction = links.instagram
-    ? `A "link in bio" destination was provided: ${links.instagram}. Reference it naturally in the caption's call to action (e.g. "link in bio"), do not paste the raw URL into the caption, and also return the link unchanged in a "bioLink" field on the instagram object.`
-    : `No link was provided, omit any "bioLink" field.`;
-  return INSTAGRAM_BLOCK.replace("{{INSTAGRAM_LINK_INSTRUCTION}}", linkInstruction);
+// Static, cacheable — identical text every time Pinterest/Instagram is
+// requested, regardless of which links (if any) were supplied for this
+// particular image.
+function pinterestBlock() {
+  return PINTEREST_BLOCK;
 }
+
+function instagramBlock() {
+  return INSTAGRAM_BLOCK;
+}
+
+// Dynamic — the actual link (or lack of one) differs per image, so this
+// is generated separately and appended in the uncached trailing part of
+// the prompt, never inside a cached block.
+function pinterestLinkInstruction(links) {
+  return links.pinterest
+    ? `Pinterest link instruction: a destination link was provided: ${links.pinterest}. Do not put the raw URL inside "description", instead work a natural soft call to action around visiting the link into the description's final sentence, and also return it unchanged in a "pinLink" field on the pinterest object.`
+    : `Pinterest link instruction: no destination link was provided, omit any "pinLink" field.`;
+}
+
+function instagramLinkInstruction(links) {
+  return links.instagram
+    ? `Instagram link instruction: a "link in bio" destination was provided: ${links.instagram}. Reference it naturally in the caption's call to action (e.g. "link in bio"), do not paste the raw URL into the caption, and also return the link unchanged in a "bioLink" field on the instagram object.`
+    : `Instagram link instruction: no link was provided, omit any "bioLink" field.`;
+}
+
+function buildLinkInstructionsBlock(platforms, links) {
+  const parts = [];
+  if (platforms.includes("pinterest")) parts.push(pinterestLinkInstruction(links));
+  if (platforms.includes("instagram")) parts.push(instagramLinkInstruction(links));
+  return parts.join("\n");
+}
+
+// Each mode below now returns { global, platform, dynamic } instead of one
+// flat string:
+//   - global:  GLOBAL_STATIC_BLOCK, byte-for-byte identical across every
+//              call in the whole app. Cached, long TTL.
+//   - platform: the static rules for whichever platforms were requested,
+//              in a fixed order (spoonflower, pinterest, instagram), so a
+//              repeat of the exact same platform combo re-hits the cache
+//              even if it happens minutes/hours later. Cached, long TTL.
+//   - dynamic: trends, manual keywords, per-image link instructions,
+//              shared-Spoonflower context, and the JSON-schema/return-keys
+//              line. Changes every call, so it's appended uncached, after
+//              the cached blocks, and never included inside them.
+// callAPI() turns { global, platform, dynamic } into the actual
+// cache_control-annotated content blocks sent to the API.
 
 // mode "full" (default/legacy): everything, every call. Used for
 // single-image runs where there's no sibling colorway to share content
@@ -317,23 +400,18 @@ function instagramBlock(links) {
 function buildFullSystemPrompt(platforms, links, opts) {
   const { includeColorMood, trends, manualKeywords } = opts;
 
-  let prompt = `${INTRO_PROMPT}
+  let platformBlock = "";
+  if (platforms.includes("spoonflower")) platformBlock += `\n${spoonflowerBlock(includeColorMood)}\n`;
+  if (platforms.includes("pinterest")) platformBlock += `\n${pinterestBlock()}\n`;
+  if (platforms.includes("instagram")) platformBlock += `\n${instagramBlock()}\n`;
 
-${SHARED_RULES_BLOCK(trends, manualKeywords)}
-
-${LICENSING_FLAG_RULE}
-
-Write content for the following sections only, and return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
+  const dynamic = `Write content for the following sections only, and return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
 { ${platforms.map((p) => `"${p}": {...}`).join(", ")}, "licensingNote": "..." }
-`;
 
-  if (platforms.includes("spoonflower")) prompt += `\n${spoonflowerBlock(includeColorMood)}\n`;
-  if (platforms.includes("pinterest")) prompt += `\n${pinterestBlock(links)}\n`;
-  if (platforms.includes("instagram")) prompt += `\n${instagramBlock(links)}\n`;
+${buildLinkInstructionsBlock(platforms, links)}
+${buildDynamicContextBlock(trends, manualKeywords)}`;
 
-  prompt += `\n${SELF_CHECK_RULE}\n`;
-
-  return prompt;
+  return { global: GLOBAL_STATIC_BLOCK, platform: platformBlock, dynamic };
 }
 
 // mode "shared": batch phase 1, run once per design (from the main image)
@@ -347,18 +425,14 @@ function buildSharedSystemPrompt(opts) {
     ? `{ "spoonflower": { "description": "...", "sharedTags": [...] }, "licensingNote": "..." }`
     : `{ "spoonflower": { "name": "...", "description": "...", "sharedTags": [...] }, "licensingNote": "..." }`;
 
-  return `${INTRO_PROMPT}
+  const platformBlock = `\n${spoonflowerSharedBlock(includeColorMood)}\n`;
 
-${SHARED_RULES_BLOCK(trends, manualKeywords)}
-
-${LICENSING_FLAG_RULE}
-
-Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
+  const dynamic = `Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
 ${returnKeys}
-${spoonflowerSharedBlock(includeColorMood)}
 
-${SELF_CHECK_RULE}
-`;
+${buildDynamicContextBlock(trends, manualKeywords)}`;
+
+  return { global: GLOBAL_STATIC_BLOCK, platform: platformBlock, dynamic };
 }
 
 // mode "colorway": batch phase 2, run once per image. Fills in only what
@@ -370,21 +444,24 @@ function buildColorwaySystemPrompt(platforms, links, opts) {
 
   const keys = platforms.map((p) => `"${p}": {...}`).join(", ");
 
-  let prompt = `${INTRO_PROMPT}
+  let platformBlock = "";
+  // sharedSpoonflower context is per-call/dynamic (it's the freshly
+  // finalized output of the phase-1 "shared" call), so it can't live in
+  // the cached platform block — spoonflowerColorwayBlock's static
+  // guidance and its dynamic sharedSpoonflower context are pulled apart
+  // below instead of being concatenated together here.
+  if (platforms.includes("spoonflower")) platformBlock += `\n${spoonflowerColorwayStaticBlock(includeColorMood)}\n`;
+  if (platforms.includes("pinterest")) platformBlock += `\n${pinterestBlock()}\n`;
+  if (platforms.includes("instagram")) platformBlock += `\n${instagramBlock()}\n`;
 
-${SHARED_RULES_BLOCK(trends, manualKeywords)}
-
-Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
+  const dynamic = `Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
 { ${keys} }
-`;
 
-  if (platforms.includes("spoonflower")) prompt += `\n${spoonflowerColorwayBlock(includeColorMood, sharedSpoonflower)}\n`;
-  if (platforms.includes("pinterest")) prompt += `\n${pinterestBlock(links)}\n`;
-  if (platforms.includes("instagram")) prompt += `\n${instagramBlock(links)}\n`;
+${platforms.includes("spoonflower") ? spoonflowerColorwayDynamicContext(sharedSpoonflower) : ""}
+${buildLinkInstructionsBlock(platforms, links)}
+${buildDynamicContextBlock(trends, manualKeywords)}`;
 
-  prompt += `\n${SELF_CHECK_RULE}\n`;
-
-  return prompt;
+  return { global: GLOBAL_STATIC_BLOCK_NO_LICENSING, platform: platformBlock, dynamic };
 }
 
 // Truncates a tag to fit within maxLen, but only at a word boundary —
@@ -487,7 +564,36 @@ function enforceCharacterLimits(parsed) {
   return parsed;
 }
 
-async function callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText) {
+// systemBlocks is { global, platform, dynamic } as produced by the
+// buildXSystemPrompt functions above. global and platform are static text
+// (identical across calls that share the same mode/platform-combo), so
+// they get cache_control breakpoints with a 1-hour TTL — long enough to
+// survive a realistic "generate Spoonflower now, decide on Pinterest and
+// Instagram later" gap. dynamic (trends, links, per-image context) is
+// appended last, uncached, since it's different on every call.
+//
+// The image is also cache_control'd: "shared" and "colorway" mode both
+// send the exact same imageBase64 for the same image, back to back, so
+// caching it avoids paying for those image tokens twice.
+//
+// Anthropic caps requests at 4 cache_control breakpoints total. Using 3
+// here (global, platform, image) leaves headroom and still captures the
+// large majority of the savings, since the global block is by far the
+// biggest chunk of text.
+async function callAPI(apiKey, imageBase64, mediaType, systemBlocks, userText) {
+  const CACHE = { type: "ephemeral", ttl: "1h" };
+
+  const system = [];
+  if (systemBlocks.global && systemBlocks.global.trim()) {
+    system.push({ type: "text", text: systemBlocks.global, cache_control: CACHE });
+  }
+  if (systemBlocks.platform && systemBlocks.platform.trim()) {
+    system.push({ type: "text", text: systemBlocks.platform, cache_control: CACHE });
+  }
+  if (systemBlocks.dynamic && systemBlocks.dynamic.trim()) {
+    system.push({ type: "text", text: systemBlocks.dynamic }); // no cache_control: changes every call
+  }
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -501,11 +607,15 @@ async function callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText) {
       // Claude Sonnet 5 no longer accepts the temperature parameter at
       // all (even at a normal value) — it returns a 400 if present, so
       // it's omitted entirely rather than set to a specific number.
-      system: systemPrompt,
+      system,
       messages: [{
         role: "user",
         content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: imageBase64 },
+            cache_control: CACHE,
+          },
           { type: "text", text: userText },
         ],
       }],
@@ -532,16 +642,17 @@ async function callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText) {
 }
 
 // Runs one API call (with its one-retry-on-parse-failure behavior) given
-// an already-built system prompt and user text. Shared by all three modes
-// below so the retry/error-handling logic isn't duplicated three times.
-async function runCall(apiKey, imageBase64, mediaType, systemPrompt, userText) {
+// an already-built { global, platform, dynamic } system block set and user
+// text. Shared by all three modes below so the retry/error-handling logic
+// isn't duplicated three times.
+async function runCall(apiKey, imageBase64, mediaType, systemBlocks, userText) {
   try {
-    const { parsed, usage } = await callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText);
+    const { parsed, usage } = await callAPI(apiKey, imageBase64, mediaType, systemBlocks, userText);
     return { statusCode: 200, results: parsed, usage };
   } catch (err) {
     if (err.rawText !== undefined) {
       try {
-        const retry = await callAPI(apiKey, imageBase64, mediaType, systemPrompt, userText);
+        const retry = await callAPI(apiKey, imageBase64, mediaType, systemBlocks, userText);
         return { statusCode: 200, results: retry.parsed, usage: retry.usage };
       } catch (err2) {
         return {
