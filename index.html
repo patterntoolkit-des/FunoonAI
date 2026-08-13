@@ -271,6 +271,7 @@ function readAndResize(file){
         isMain: images.length === 0,
         platforms: new Set(),
         links: { pinterest: '', instagram: '' },
+        designId: '',
         keywordOverride: '', showOverride: false,
         results: {}, loading: false, error: null,
       };
@@ -550,6 +551,18 @@ function renderWorkspace(){
   top.querySelector('[data-action="set-main"]').addEventListener('click', () => setMain(img.id));
   workspace.appendChild(top);
 
+  const designIdInput = document.createElement('input');
+  designIdInput.className = 'link-input'; designIdInput.type = 'text';
+  designIdInput.placeholder = 'Spoonflower Design ID (optional)';
+  designIdInput.value = img.designId;
+  designIdInput.addEventListener('input', e => { img.designId = e.target.value.trim(); });
+  // Re-render only on blur (not every keystroke) so the Fabric/Wallpaper
+  // links and Instagram footer refresh to match, without resetting focus
+  // or cursor position while the designer is still typing the ID. No AI
+  // regeneration involved either way, this is pure client-side templating.
+  designIdInput.addEventListener('change', () => { if(Object.keys(img.results).length) render(); });
+  workspace.appendChild(designIdInput);
+
   const checkboxRow = document.createElement('div');
   checkboxRow.className = 'checkbox-row';
   ['spoonflower','pinterest','instagram'].forEach(p => {
@@ -614,13 +627,17 @@ function renderWorkspace(){
     const resultsBlock = document.createElement('div');
     resultsBlock.className = 'results-block';
     ['spoonflower','pinterest','instagram'].forEach(p => {
-      if(img.results[p]) resultsBlock.appendChild(renderPlatformResult(p, img.results[p]));
+      if(img.results[p]) resultsBlock.appendChild(renderPlatformResult(p, img.results[p], img.designId));
     });
     workspace.appendChild(resultsBlock);
   }
 }
 
-function renderPlatformResult(platform, data){
+// designId is passed in separately from `data` (rather than baked into
+// the stored generation result) because it's pure client-side templating,
+// not AI-generated content — editing it later shouldn't require
+// regenerating anything, it just changes what gets rendered here.
+function renderPlatformResult(platform, data, designId){
   const wrap = document.createElement('div');
   wrap.style.marginBottom = '14px';
 
@@ -634,13 +651,20 @@ function renderPlatformResult(platform, data){
     wrap.appendChild(fieldBlock('Description', data.description, true));
     wrap.appendChild(tagGroup('Shared tags (8) — same across every colorway', data.sharedTags));
     wrap.appendChild(tagGroup('Colorway tags (5) — unique to this image', data.colorwayTags));
+    if(designId){
+      wrap.appendChild(fieldBlock('Fabric link', 'https://www.spoonflower.com/fabric/' + designId));
+      wrap.appendChild(fieldBlock('Wallpaper link', 'https://www.spoonflower.com/wallpaper/' + designId));
+    }
   } else if(platform === 'pinterest'){
     wrap.appendChild(fieldBlock('Title', data.title));
     wrap.appendChild(fieldBlock('Description', data.description, true));
     wrap.appendChild(fieldBlock('Alt text', data.altText, true));
     if(data.pinLink) wrap.appendChild(fieldBlock('Pin link', data.pinLink));
   } else if(platform === 'instagram'){
-    wrap.appendChild(fieldBlock('Caption', data.caption, true));
+    const captionWithFooter = designId
+      ? (data.caption || '').trim() + '\n\nDesign ID: ' + designId
+      : data.caption;
+    wrap.appendChild(fieldBlock('Caption', captionWithFooter, true));
     wrap.appendChild(tagGroup('Hashtags', (data.hashtags||[]).map(h => h.startsWith('#') ? h : '#'+h)));
     wrap.appendChild(fieldBlock('Alt text', data.altText, true));
     if(data.bioLink) wrap.appendChild(fieldBlock('Bio link', data.bioLink));
