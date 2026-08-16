@@ -462,7 +462,12 @@ async function generate(id){
           includeColorMood, trends, manualKeywords,
           sharedSpoonflower: shared,
         }),
-      }, 28000);
+      }, 29000); // was 28000: small stopgap bump now that the shared/colorway
+      // cache-mismatch fix (see generate-ai-content.js) should cut typical
+      // colorway latency substantially. Kept just under the confirmed 30s
+      // Netlify function ceiling, not pushed further, since exceeding that
+      // ceiling doesn't get more time, it just swaps a clear timeout message
+      // for a cryptic "unreadable response" one when Netlify kills it first.
       if(platforms.includes('spoonflower')) img.licensingNote = shared.licensingNote;
     } else {
       data = await fetchJSON('/.netlify/functions/generate-ai-content', {
