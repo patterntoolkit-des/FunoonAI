@@ -327,15 +327,18 @@ ${LICENSING_FLAG_RULE}
 ${SELF_CHECK_RULE}`;
 
 // Colorway mode never asks for "licensingNote" (that's produced once, in
-// shared/full mode) — so it gets its own static global block without
-// LICENSING_FLAG_RULE, rather than reusing GLOBAL_STATIC_BLOCK and
-// risking the model adding an unwanted licensingNote field. Still fully
-// static and independently cacheable.
-const GLOBAL_STATIC_BLOCK_NO_LICENSING = `${INTRO_PROMPT}
-
-${SHARED_RULES_BLOCK}
-
-${SELF_CHECK_RULE}`;
+// shared/full mode). This USED to be handled with a second static global
+// block (GLOBAL_STATIC_BLOCK_NO_LICENSING) that dropped LICENSING_FLAG_RULE.
+// That block was byte-for-byte different from GLOBAL_STATIC_BLOCK, which
+// meant colorway calls could never reuse the cache written by the shared
+// call that immediately precedes them in the same batch — every colorway
+// call was paying full uncached-prompt latency on the largest chunk of the
+// prompt, which was pushing some calls close to (or past) the 28s client
+// timeout. Fixed: colorway mode now reuses the exact same GLOBAL_STATIC_BLOCK
+// as shared/full mode (so it actually hits the cache), and the
+// "don't return licensingNote" instruction moved to the per-call dynamic
+// block instead (see buildColorwaySystemPrompt below), which is cheap to
+// send uncached every time.
 
 // Trend research + manual keywords + (for colorway mode) the finalized
 // shared-Spoonflower context all change on every call, so they're kept
@@ -457,11 +460,13 @@ function buildColorwaySystemPrompt(platforms, links, opts) {
   const dynamic = `Return ONLY a single raw JSON object with exactly these top level keys (no markdown, no backticks, no commentary):
 { ${keys} }
 
+Do not include a "licensingNote" field in this response. That field is generated once, separately, in the earlier design-level call, not per colorway.
+
 ${platforms.includes("spoonflower") ? spoonflowerColorwayDynamicContext(sharedSpoonflower) : ""}
 ${buildLinkInstructionsBlock(platforms, links)}
 ${buildDynamicContextBlock(trends, manualKeywords)}`;
 
-  return { global: GLOBAL_STATIC_BLOCK_NO_LICENSING, platform: platformBlock, dynamic };
+  return { global: GLOBAL_STATIC_BLOCK, platform: platformBlock, dynamic };
 }
 
 // Truncates a tag to fit within maxLen, but only at a word boundary —
