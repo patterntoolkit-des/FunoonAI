@@ -1,733 +1,1393 @@
-<!DOCTYPE html>
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Content Generator — Test</title>
+<title>Pattern Toolkit — Content Creator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-:root {
-  --navy:    #192231;
-  --forest:  #404A42;
-  --linen:   #EDDBCD;
-  --white:   #F4F4F4;
-  --linen-2: #E3CEC0;
-  --linen-3: #D9C5B5;
-  --navy-2:  #232E40;
-  --gold:    #C0B283;
-  --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-ui:    'Outfit', system-ui, sans-serif;
-  --r:   12px;
-  --r-sm: 8px;
-  --r-xs: 5px;
-  --sh:  0 1px 4px rgba(25,34,49,.06);
-  --t:   all 0.18s ease;
+:root{
+  --navy:#192231; --forest:#404A42; --gold:#404A42;
+  --linen:#EDDBCD; --white:#F4F4F4;
+  --linen-2:#E3CEC0; --linen-3:#D9C5B5;
+  --navy-2:#232E40; --navy-3:#2E3C50;
+  --gold-3:#EEF3EF;
+  --font-serif:'Cormorant Garamond', Georgia, serif;
+  --font-ui:'Outfit', system-ui, sans-serif;
+  --r:12px; --r-sm:8px; --r-xs:5px;
+  --sh:0 1px 4px rgba(25,34,49,.06); --sh2:0 2px 12px rgba(25,34,49,.1);
+  --t:all .18s ease;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font-ui);background:var(--linen);color:var(--navy);}
-.content{padding:20px 16px 80px;max-width:720px;margin:0 auto;}
+html,body{height:100%;}
+body{font-family:var(--font-ui);background:var(--linen);color:var(--navy);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
 
-.card{background:var(--white);border:1px solid var(--linen-3);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh);}
-.card-title{font-family:var(--font-serif);font-size:16px;font-weight:400;margin-bottom:10px;}
-
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;font-family:var(--font-ui);font-size:12.5px;font-weight:400;letter-spacing:.3px;transition:var(--t);white-space:nowrap;line-height:1;}
-.btn-primary{background:var(--navy);color:var(--white);border-color:var(--navy);}
-.btn-primary:hover{background:var(--navy-2);}
-.btn-primary:disabled{opacity:0.45;cursor:not-allowed;}
-.btn-ghost{background:none;color:var(--forest);border-color:var(--linen-3);}
-.btn-ghost:hover{background:var(--linen);border-color:var(--linen-2);}
-.btn-sm{padding:6px 11px;font-size:11px;}
-
-/* ── Upload ── */
-.upload-box{border:1.5px dashed var(--linen-3);border-radius:var(--r-sm);padding:24px 18px;text-align:center;cursor:pointer;transition:var(--t);background:var(--linen);}
-.upload-box:hover,.upload-box.drag-over{border-color:var(--navy);background:var(--linen-2);}
-.upload-title{font-size:13px;color:var(--navy);font-weight:400;margin-bottom:4px;}
-.upload-hint{font-size:11px;color:#A0B4C4;font-weight:300;}
-#file-input{display:none;}
-
-/* ── Filmstrip ── */
-.filmstrip-wrap{margin-bottom:14px;}
-.filmstrip{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch;}
-.film-thumb{position:relative;flex-shrink:0;width:60px;height:60px;border-radius:var(--r-xs);overflow:hidden;border:2px solid transparent;cursor:pointer;background:var(--white);}
-.film-thumb.active{border-color:var(--navy);}
-.film-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.film-star{position:absolute;top:2px;left:2px;font-size:9px;background:var(--gold);color:var(--navy);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;}
-.film-status{position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1px solid white;}
-.film-status.done{background:#5C8A6B;}
-.film-status.err{background:#A85C4A;}
-.film-status.loading{background:var(--gold);}
-.film-remove{position:absolute;top:1px;right:1px;background:rgba(25,34,49,.65);color:white;font-size:9px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1;}
-.add-more-thumb{flex-shrink:0;width:60px;height:60px;border-radius:var(--r-xs);border:1.5px dashed var(--linen-3);display:flex;align-items:center;justify-content:center;font-size:22px;color:#A0B4C4;cursor:pointer;background:var(--linen);}
-
-/* ── Design bar ── */
-.design-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 4px;margin-bottom:6px;font-size:11.5px;color:var(--forest);}
-.switch{position:relative;width:34px;height:19px;flex-shrink:0;}
-.switch input{opacity:0;width:0;height:0;}
-.slider{position:absolute;inset:0;background:var(--linen-3);border-radius:20px;cursor:pointer;transition:var(--t);}
-.slider:before{content:"";position:absolute;width:13px;height:13px;left:3px;top:3px;background:white;border-radius:50%;transition:var(--t);}
-.switch input:checked + .slider{background:var(--navy);}
-.switch input:checked + .slider:before{transform:translateX(15px);}
-.color-mood-row{display:flex;align-items:center;gap:8px;}
-
-/* ── Workspace ── */
-.workspace-top{display:flex;gap:12px;margin-bottom:14px;}
-.ws-preview{width:88px;height:88px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--linen-3);flex-shrink:0;}
-.ws-meta{flex:1;min-width:0;}
-.ws-name{font-size:12.5px;color:var(--navy);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ws-dims{font-size:10.5px;color:#A0B4C4;margin-top:2px;margin-bottom:6px;}
-.main-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:3px 9px;border-radius:12px;border:1px solid var(--linen-3);cursor:pointer;user-select:none;color:var(--forest);}
-.main-pill.checked{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:500;}
-
-.checkbox-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.checkbox-pill{display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:var(--r-sm);background:var(--linen);border:1px solid var(--linen-3);cursor:pointer;transition:var(--t);font-size:12px;color:var(--forest);user-select:none;}
-.checkbox-pill.checked{background:var(--navy);border-color:var(--navy);color:var(--white);}
-.checkbox-pill input{width:12px;height:12px;cursor:pointer;accent-color:var(--navy);}
-
-.link-input{width:100%;padding:8px 10px;border:1px solid var(--linen-3);border-radius:var(--r-xs);background:var(--white);font-family:var(--font-ui);font-size:12px;color:var(--navy);outline:none;margin-bottom:6px;}
-.link-input:focus{border-color:var(--navy);}
-
-textarea.keyword-input{width:100%;padding:9px 11px;border:1px solid var(--linen-3);border-radius:var(--r-sm);background:var(--linen);font-family:var(--font-ui);font-size:12px;color:var(--navy);outline:none;resize:vertical;min-height:40px;}
-textarea.keyword-input:focus{border-color:var(--navy);background:var(--white);}
-.keyword-label{font-size:11px;color:#8A9186;margin-bottom:5px;display:block;}
-
-.loading-row{display:flex;align-items:center;gap:8px;padding:10px 0;color:#8A9186;font-size:12px;}
-.spinner{width:14px;height:14px;border:2px solid var(--linen-3);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.err-box{background:#FBEDE9;border:1px solid #E3B7A6;border-radius:var(--r-xs);padding:8px 10px;font-size:11.5px;color:#8A3D2A;margin:8px 0;}
-
-.results-block{margin-top:14px;border-top:1px solid var(--linen-3);padding-top:12px;}
-.platform-badge{display:inline-block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:400;margin-bottom:6px;}
-.field-block{margin-bottom:12px;}
-.field-block:last-child{margin-bottom:0;}
-.field-label{font-size:10.5px;color:#8A9186;font-weight:300;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
-.field-value{width:100%;border:1px solid var(--linen-3);border-radius:var(--r-xs);background:var(--linen);font-family:var(--font-ui);font-size:12px;color:var(--navy);padding:8px 10px;line-height:1.6;resize:vertical;outline:none;min-height:38px;}
-.field-value:focus{border-color:var(--navy);background:var(--white);}
-.tag-group-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#A0B4C4;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
-.tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
-.tag-chip{font-size:10.5px;padding:4px 9px;border-radius:6px;background:var(--linen);border:1px solid var(--linen-3);color:var(--forest);cursor:pointer;user-select:none;}
-.tag-chip.unselected{opacity:.4;text-decoration:line-through;}
-
-.empty-state{text-align:center;padding:40px 20px;color:#A0B4C4;font-size:12.5px;}
-
-::-webkit-scrollbar{height:5px;width:5px;}
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--linen-3);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#8A9186;}
+
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;background:var(--linen-3);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--forest);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--forest);border-radius:50%;border:none;cursor:pointer;}
+
+.notice{flex-shrink:0;padding:6px 16px;background:#F0EBE4;border-bottom:1px solid var(--linen-3);border-left:3px solid var(--gold);font-size:11px;color:#7A8A7A;font-weight:400;letter-spacing:.2px;position:relative;z-index:10;}
+
+/* ── canvas stage ── */
+#stage-wrap{flex-shrink:0;background:var(--linen-2);border-bottom:1px solid var(--linen-3);position:relative;z-index:5;}
+.ps-ctrl-bar{display:flex;align-items:center;gap:10px;padding:0 14px;height:46px;background:var(--white);border-bottom:1px solid var(--linen-3);overflow-x:auto;position:relative;z-index:5;}
+.ps-ctrl-label{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A9186;white-space:nowrap;flex-shrink:0;}
+.ps-seg-group{display:flex;gap:3px;background:var(--linen);border:1px solid var(--linen-3);padding:3px;border-radius:8px;flex-shrink:0;}
+.ps-seg-btn{padding:5px 11px;font-size:11.5px;font-weight:400;border:none;background:none;border-radius:6px;color:var(--forest);cursor:pointer;transition:var(--t);font-family:var(--font-ui);white-space:nowrap;}
+.ps-seg-btn.active{background:var(--navy);color:var(--white);box-shadow:0 1px 4px rgba(25,34,49,.2);}
+.ps-sep{width:1px;height:20px;background:var(--linen-3);flex-shrink:0;}
+.ps-zoom-row{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0;}
+.ps-z-btn{height:26px;padding:0 9px;border:1px solid var(--linen-3);background:var(--white);border-radius:6px;font-size:11px;color:var(--navy);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--t);font-family:var(--font-ui);}
+.ps-z-btn:hover{border-color:var(--forest);color:var(--forest);}
+
+.ps-canvas-wrap{position:relative;height:56vh;min-height:320px;max-height:640px;overflow:hidden;background:var(--linen-2);display:flex;align-items:center;justify-content:center;}
+.dims-corner{position:absolute;top:8px;right:8px;background:rgba(25,34,49,.5);color:#fff;font-size:9.5px;font-weight:400;padding:3px 8px;border-radius:10px;pointer-events:none;letter-spacing:.2px;font-family:var(--font-ui);z-index:4;}
+.drag-hint{flex-shrink:0;text-align:center;font-size:10.5px;color:#8A9186;font-weight:300;padding:5px 10px;background:var(--white);border-bottom:1px solid var(--linen-3);letter-spacing:.1px;}
+.ps-seg-btn:disabled{opacity:.35;cursor:not-allowed;}
+.compact-note{font-size:11px;color:#8A9186;font-weight:300;line-height:1.5;}
+.tab-panel{display:flex;flex-direction:column;gap:12px;}
+#canvas{cursor:grab;display:none;box-shadow:var(--sh2);background:#fff;touch-action:none;}
+#canvas.grabbing{cursor:grabbing;}
+#canvas.picking{cursor:crosshair;outline:3px solid var(--forest);outline-offset:-3px;}
+#canvas.drag-target{outline:3px dashed var(--forest);outline-offset:-3px;}
+.ps-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#8A9186;text-align:center;padding:30px;pointer-events:none;}
+.ps-empty-icon{width:52px;height:52px;background:var(--white);border:1px dashed var(--linen-3);border-radius:14px;display:flex;align-items:center;justify-content:center;}
+.ps-empty h3{font-family:var(--font-serif);font-size:19px;font-weight:400;color:var(--navy);font-style:italic;}
+.ps-empty p{font-size:12.5px;max-width:240px;line-height:1.6;font-weight:300;}
+.sh-badge{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(25,34,49,.68);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.08);color:#A0B4C4;font-size:10px;font-weight:400;padding:4px 12px;border-radius:20px;white-space:nowrap;font-family:var(--font-ui);letter-spacing:.4px;pointer-events:none;}
+
+/* ── options ── */
+#options{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 60px;display:flex;flex-direction:column;gap:12px;max-width:640px;margin:0 auto;width:100%;}
+.card{background:var(--white);border:1px solid var(--linen-3);border-radius:var(--r);padding:14px 14px 12px;box-shadow:var(--sh);}
+.kicker{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--forest);font-weight:500;margin-bottom:11px;}
+.subkicker{font-size:10px;font-weight:400;color:#8A9186;letter-spacing:.5px;text-transform:uppercase;margin:10px 0 6px;}
+.subkicker:first-of-type{margin-top:0;}
+
+.upload-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.btn-primary{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;background:var(--navy);color:var(--white);border:none;border-radius:7px;font-family:var(--font-ui);font-size:12.5px;cursor:pointer;transition:var(--t);}
+.btn-primary:hover{background:var(--navy-3);}
+.btn-remove{display:none;padding:9px 12px;background:none;border:1.5px solid #e0c0c0;color:#c07070;border-radius:7px;font-family:var(--font-ui);font-size:12px;cursor:pointer;transition:var(--t);white-space:nowrap;}
+.btn-remove:hover{background:#F6E9E7;}
+.hint{font-size:11px;color:#8A9186;font-weight:300;line-height:1.5;margin-bottom:2px;}
+.thumb-box{display:flex;justify-content:center;padding:4px 0;}
+.thumb-cv{border-radius:6px;border:1px solid var(--linen-3);background:repeating-conic-gradient(#ddd 0% 25%,#fff 0% 50%) 0 0/12px 12px;max-width:100%;max-height:76px;}
+
+.overlay-controls{display:none;flex-direction:column;gap:9px;margin-top:2px;}
+.slider-row{display:flex;align-items:center;gap:10px;}
+.slider-row .lbl{font-size:12px;font-weight:300;color:var(--navy);flex-shrink:0;min-width:66px;}
+.slider-row input[type=range]{flex:1;}
+.slider-row .val{font-size:11px;font-weight:500;color:var(--forest);text-align:right;min-width:36px;flex-shrink:0;}
+.centre-btn{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:7px;background:none;border:1px solid var(--linen-3);border-radius:6px;font-family:var(--font-ui);font-size:11px;color:var(--forest);cursor:pointer;transition:var(--t);}
+.centre-btn:hover{border-color:var(--forest);background:var(--linen-2);}
+
+.mode-toggle{display:flex;gap:3px;background:var(--linen);border:1px solid var(--linen-3);padding:4px;border-radius:8px;margin-bottom:2px;}
+.mode-btn{flex:1;padding:7px 0;font-size:12px;font-weight:400;border:none;background:none;color:var(--forest);border-radius:6px;cursor:pointer;font-family:var(--font-ui);transition:var(--t);}
+.mode-btn.active{background:var(--navy);color:var(--white);box-shadow:0 1px 4px rgba(25,34,49,.2);}
+
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+.sh-chip{padding:6px 13px;border-radius:20px;font-size:11.5px;font-weight:400;border:1.5px solid var(--linen-3);background:var(--linen);color:var(--navy);cursor:pointer;transition:var(--t);white-space:nowrap;font-family:var(--font-ui);line-height:1;}
+.sh-chip:hover{border-color:var(--forest);}
+.sh-chip.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.custom-row{display:none;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap;}
+.custom-row input{width:74px;padding:7px 8px;border:1.5px solid var(--linen-3);border-radius:var(--r-sm);background:var(--linen);font-family:var(--font-ui);font-size:12px;color:var(--navy);text-align:center;}
+.custom-row .cw-lbl{font-size:11px;font-weight:400;color:var(--forest);}
+.custom-row .cw-x{font-size:13px;color:#B0A898;font-weight:300;}
+.custom-row .cw-px{font-size:11px;color:#B0A898;}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.toggle-label{font-size:12.5px;color:var(--navy);font-weight:500;}
+.tog{position:relative;width:32px;height:18px;background:var(--linen-3);border-radius:9px;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.tog.on{background:var(--forest);}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.tog.on::after{transform:translateX(14px);}
+
+.text-field{width:100%;padding:8px 10px;border:1.5px solid var(--linen-3);border-radius:7px;font-family:var(--font-ui);font-size:12.5px;background:var(--linen);color:var(--navy);margin-bottom:8px;}
+.text-field:focus{outline:none;border-color:var(--forest);}
+.color-row{display:flex;gap:10px;margin-bottom:9px;}
+.color-field{flex:1;display:flex;align-items:center;gap:8px;background:var(--linen);border:1px solid var(--linen-3);border-radius:7px;padding:5px 10px;}
+.color-field input[type=color]{width:24px;height:24px;border:none;padding:0;background:none;cursor:pointer;border-radius:5px;}
+.color-field label{font-size:10.5px;color:#8A9186;}
+
+.fmt-row{display:flex;border:1.5px solid var(--linen-3);border-radius:var(--r-sm);overflow:hidden;}
+.fmt-btn{flex:1;padding:8px 0;font-family:var(--font-ui);font-size:12.5px;font-weight:500;background:var(--linen);color:var(--navy);border:none;cursor:pointer;transition:var(--t);}
+.fmt-btn.active{background:var(--navy);color:var(--white);}
+.fmt-btn+.fmt-btn{border-left:1.5px solid var(--linen-3);}
+
+.export-btn{width:100%;padding:15px;border-radius:var(--r);background:var(--navy);color:var(--white);font-family:var(--font-ui);font-size:13px;font-weight:400;border:none;cursor:pointer;transition:var(--t);letter-spacing:.3px;box-shadow:var(--sh2);display:flex;align-items:center;justify-content:center;gap:8px;}
+.export-btn:hover:not(:disabled){background:var(--navy-3);}
+.export-btn:disabled{opacity:.45;cursor:not-allowed;}
+.export-btn-secondary{background:var(--white);color:var(--navy);border:1.5px solid var(--linen-3);box-shadow:none;margin-bottom:10px;}
+.export-btn-secondary:hover:not(:disabled){background:var(--linen-2);border-color:var(--forest);color:var(--forest);}
+
+/* ── batch thumbnail strip ── */
+.batch-strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0 6px;}
+.batch-thumb{position:relative;flex-shrink:0;width:58px;height:58px;border-radius:7px;overflow:hidden;border:2px solid var(--linen-3);cursor:pointer;background:repeating-conic-gradient(#ddd 0% 25%,#fff 0% 50%) 0 0/10px 10px;transition:var(--t);}
+.batch-thumb.active{border-color:var(--forest);box-shadow:0 0 0 1px var(--forest);}
+.batch-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.batch-thumb .bx{position:absolute;top:1px;right:1px;width:16px;height:16px;background:rgba(25,34,49,.75);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0;border:none;cursor:pointer;}
+.batch-thumb .bx svg{width:8px;height:8px;}
+.batch-add{flex-shrink:0;width:58px;height:58px;border-radius:7px;border:1.5px dashed var(--linen-3);background:var(--linen);display:flex;align-items:center;justify-content:center;color:#8A9186;cursor:pointer;transition:var(--t);}
+.batch-add:hover{border-color:var(--forest);color:var(--forest);}
+.batch-count{font-size:10.5px;color:#8A9186;font-weight:400;margin-bottom:2px;}
+
+/* ── sticker presets ── */
+.preset-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
+.preset-chip{display:flex;align-items:center;gap:7px;padding:6px 8px 6px 13px;border-radius:20px;border:1.5px solid var(--linen-3);background:var(--linen);color:var(--navy);cursor:pointer;transition:var(--t);font-family:var(--font-ui);}
+.preset-chip:hover{border-color:var(--forest);}
+.preset-chip.active{background:var(--navy);border-color:var(--navy);}
+.preset-chip.active .preset-label{color:var(--white);}
+.preset-label{font-size:11.5px;font-weight:400;white-space:nowrap;line-height:1;}
+.preset-edit{width:20px;height:20px;border-radius:50%;background:#111;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.preset-edit svg{width:10px;height:10px;stroke:#fff;}
+.preset-editor{display:none;flex-direction:column;gap:7px;background:var(--linen);border:1.5px solid var(--linen-3);border-radius:var(--r-sm);padding:10px;margin-bottom:11px;}
+.preset-editor.open{display:flex;}
+.preset-editor-actions{display:flex;gap:8px;justify-content:flex-end;}
+.preset-editor-actions button{padding:6px 14px;border-radius:6px;border:none;font-family:var(--font-ui);font-size:11.5px;cursor:pointer;}
+.pe-save{background:var(--navy);color:var(--white);}
+.pe-cancel{background:none;border:1px solid var(--linen-3) !important;color:var(--forest);}
+
+/* ── color choice buttons ── */
+.clr-block{margin-bottom:11px;}
+.clr-block-label{font-size:10.5px;color:#8A9186;margin-bottom:6px;font-weight:400;}
+.clr-choice-row{display:flex;align-items:center;gap:7px;}
+.clr-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;border-radius:7px;border:1.5px solid var(--linen-3);background:var(--white);color:var(--navy);font-family:var(--font-ui);font-size:11.5px;cursor:pointer;transition:var(--t);}
+.clr-btn:hover{border-color:var(--forest);}
+.clr-btn.active{border-color:var(--navy);background:var(--navy);color:var(--white);}
+.clr-swatch{width:15px;height:15px;border-radius:50%;border:1px solid rgba(0,0,0,.15);flex-shrink:0;}
+.clr-current{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--linen-3);flex-shrink:0;box-shadow:var(--sh);}
+.pick-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(25,34,49,.85);color:#fff;font-size:11px;padding:7px 14px;border-radius:20px;display:none;align-items:center;gap:7px;font-family:var(--font-ui);pointer-events:none;z-index:5;white-space:nowrap;}
+.pick-badge.show{display:flex;}
+
+/* ── colour-pick drag preview (magnifier-style loupe) ──
+   The loupe is a circular zoomed crop (overflow:hidden, clips to a circle).
+   The colour swatch must live OUTSIDE that clipped circle, so it's a
+   separate sibling positioned relative to .pick-loupe-wrap instead of being
+   a child of the clipped .pick-loupe circle itself. */
+.pick-loupe-wrap{
+  position:fixed; z-index:9999; pointer-events:none; display:none;
+  transform:translate(-50%,0); /* horizontal centering only; vertical offset is computed in JS */
+}
+.pick-loupe{
+  position:relative; width:96px; height:96px; border-radius:50%;
+  border:3px solid #fff; box-shadow:0 4px 18px rgba(0,0,0,.35), 0 0 0 1.5px rgba(0,0,0,.15);
+  overflow:hidden; background:#fff;
+}
+.pick-loupe canvas{position:absolute; top:0; left:0; image-rendering:pixelated;}
+.pick-loupe .loupe-ring{
+  position:absolute; inset:0; border-radius:50%;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+  pointer-events:none;
+}
+.pick-loupe .loupe-crosshair{
+  position:absolute; top:50%; left:50%; width:13px; height:13px;
+  transform:translate(-50%,-50%); border-radius:50%;
+  border:2px solid rgba(255,255,255,.95); box-shadow:0 0 0 1px rgba(0,0,0,.5);
+  pointer-events:none;
+}
+/* Sits BELOW the circle, as a sibling — never clipped, always visible. */
+.loupe-swatch-row{
+  display:none; align-items:center; gap:8px; justify-content:center;
+  margin-top:8px; background:rgba(25,34,49,.88); backdrop-filter:blur(4px);
+  padding:6px 12px 6px 8px; border-radius:20px; white-space:nowrap;
+}
+.loupe-swatch{
+  width:22px; height:22px; border-radius:6px; border:2px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.3); flex-shrink:0;
+}
+.loupe-hex{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:500;
+  color:#fff; letter-spacing:.3px;
+}
 </style>
 </head>
 <body>
 
-<div class="content">
+<input type="file" id="artInput" accept="image/*" multiple style="display:none">
 
-  <!-- Upload -->
+<div class="notice">Your files are never uploaded to a server or used for AI training.</div>
+
+<div id="stage-wrap">
+  <div class="ps-ctrl-bar" id="targetBar" style="display:none;">
+    <span class="ps-ctrl-label">Editing</span>
+    <div class="ps-seg-group" id="targetSeg">
+      <button class="ps-seg-btn active" data-target="layout">Layout</button>
+      <button class="ps-seg-btn" data-target="size">Size</button>
+      <button class="ps-seg-btn" data-target="logo" id="targetLogoBtn">Logo</button>
+      <button class="ps-seg-btn" data-target="sticker" id="targetStickerBtn">Sticker</button>
+    </div>
+    <div class="ps-sep"></div>
+    <div class="ps-zoom-row" id="zoomRow">
+      <button class="ps-z-btn" id="zFitBtn">Fit</button>
+      <button class="ps-z-btn" id="z1to1Btn">1:1</button>
+    </div>
+  </div>
+  <div class="ps-ctrl-bar" id="repeatBar" style="display:none;">
+    <span class="ps-ctrl-label">Repeat</span>
+    <div class="ps-seg-group" id="repeatSeg">
+      <button class="ps-seg-btn active" data-repeat="full">Full Drop</button>
+      <button class="ps-seg-btn" data-repeat="halfdrop">Half Drop</button>
+      <button class="ps-seg-btn" data-repeat="halfbrick">Half Brick</button>
+    </div>
+  </div>
+
+  <div class="ps-canvas-wrap" id="canvasWrap">
+    <canvas id="canvas"></canvas>
+    <div class="ps-empty" id="empty">
+      <div class="ps-empty-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A9186" stroke-width="1.3"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </div>
+      <h3>No artwork loaded</h3>
+      <p>Upload a pattern tile or a finished mockup below to start building your post.</p>
+    </div>
+    <div class="dims-corner" id="dimsBadgeOverlay" style="display:none;"></div>
+    <div class="pick-badge" id="pickBadge">Drag on the artwork to pick a colour</div>
+  </div>
+  <div class="drag-hint" id="dragHint" style="display:none;"></div>
+</div>
+
+<div id="options">
+
+  <!-- ARTWORK -->
   <div class="card">
-    <div class="card-title">Upload Images</div>
-    <div class="upload-box" id="upload-box">
-      <div class="upload-title">Click to upload, or drag and drop</div>
-      <div class="upload-hint">PNG or JPG, up to 10 images. First one becomes the main design.</div>
+    <div class="kicker">Artwork</div>
+    <div class="upload-row">
+      <button class="btn-primary" id="artBtn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V3M5 6l3-3 3 3M3 13h10"/></svg>
+        <span id="artBtnLabel">Upload Tiles / Mockups</span>
+      </button>
+      <button class="btn-remove" id="artRemoveBtn">Remove All</button>
     </div>
-    <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" multiple>
+    <p class="hint" id="artHint">Upload up to 10 pattern tiles or mockups. Each image keeps its own layout, logo and sticker settings — nothing is shared between them.</p>
+    <p class="batch-count" id="batchCount" style="display:none;"></p>
+    <div class="batch-strip" id="batchStrip" style="display:none;"></div>
   </div>
 
-  <!-- Filmstrip -->
-  <div class="filmstrip-wrap" id="filmstrip-wrap" style="display:none;">
-    <div class="filmstrip" id="filmstrip"></div>
-  </div>
-
-  <!-- Design bar -->
-  <div class="design-bar" id="design-bar" style="display:none;">
-    <div class="checkbox-row" id="platform-row" style="margin-bottom:0;width:100%;"></div>
-    <div class="color-mood-row">
-      <label class="switch"><input type="checkbox" id="color-mood-toggle"><span class="slider"></span></label>
-      <span>Include color/mood in title &amp; description</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span id="trend-status" style="color:#A0B4C4;"></span>
-      <button class="btn btn-ghost btn-sm" id="clear-batch-btn">Clear all</button>
+  <!-- LAYOUT TAB -->
+  <div class="tab-panel" id="panel-layout">
+  <div class="card">
+    <div class="kicker">Layout</div>
+    <div class="mode-toggle" id="modeSeg">
+      <button class="mode-btn active" data-mode="pattern">Tiled Pattern</button>
+      <button class="mode-btn" data-mode="single">Single Image</button>
     </div>
   </div>
 
-  <!-- Workspace -->
-  <div class="card" id="workspace" style="display:none;"></div>
+  <div class="card" id="patternSettings">
+    <div class="kicker">Pattern Settings</div>
+    <div class="slider-row">
+      <span class="lbl">Tile Size</span>
+      <input type="range" id="tileSlider" min="4" max="100" value="15">
+      <span class="val" id="tileVal">15%</span>
+    </div>
+  </div>
 
-  <div class="empty-state" id="empty-state">Upload an image to get started.</div>
+  <div class="card" id="singleSettings" style="display:none;">
+    <div class="kicker">Image Settings</div>
+    <div class="slider-row">
+      <span class="lbl">Size</span>
+      <input type="range" id="singleSlider" min="10" max="100" value="90">
+      <span class="val" id="singleVal">90%</span>
+    </div>
+    <p class="hint" style="margin-top:10px;">Drag the image in the preview above to reposition it.</p>
+  </div>
+  </div>
+
+  <!-- SIZE TAB -->
+  <div class="tab-panel" id="panel-size" style="display:none;">
+  <div class="card">
+    <div class="kicker">Choose a Size</div>
+    <div class="chip-row" id="sizeChips">
+      <button class="sh-chip active" data-w="1080" data-h="1080">Instagram Post — Square (1:1)</button>
+      <button class="sh-chip" data-w="1080" data-h="1350">Instagram Post — Portrait (4:5)</button>
+      <button class="sh-chip" data-w="1080" data-h="1920">Instagram Story (9:16)</button>
+      <button class="sh-chip" data-w="1000" data-h="1500">Pinterest Pin (2:3)</button>
+      <button class="sh-chip" data-custom="1">Custom</button>
+    </div>
+    <div class="custom-row" id="customRow">
+      <span class="cw-lbl">W</span><input type="number" id="cw" value="1200" min="100" max="6000">
+      <span class="cw-x">×</span>
+      <span class="cw-lbl">H</span><input type="number" id="ch" value="1200" min="100" max="6000">
+      <span class="cw-px">px</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Format</div>
+    <div class="fmt-row">
+      <button class="fmt-btn active" id="fmtPng">PNG</button>
+      <button class="fmt-btn" id="fmtJpg">JPG</button>
+    </div>
+  </div>
+  </div>
+
+  <!-- LOGO TAB -->
+  <div class="tab-panel" id="panel-logo" style="display:none;">
+  <div class="card">
+    <div class="toggle-row">
+      <span class="kicker" style="margin-bottom:0;">Logo Overlay</span>
+      <div class="tog" id="logoTog"></div>
+    </div>
+    <input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
+    <div class="upload-row" style="margin-top:10px;">
+      <button class="btn-primary" id="logoBtn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V3M5 6l3-3 3 3M3 13h10"/></svg>
+        <span id="logoBtnLabel">Upload Logo</span>
+      </button>
+      <button class="btn-remove" id="logoRemoveBtn">Remove</button>
+    </div>
+    <p class="hint" id="logoHint">Upload once — it's shared by every image. Switch it on/off per image above; when on, tap "Logo" over the preview and drag to reposition (pinch or scroll to resize).</p>
+    <div class="overlay-controls" id="logoControls">
+      <div class="thumb-box"><canvas class="thumb-cv" id="logoThumb"></canvas></div>
+      <p class="compact-note">On for this image. Tap "Logo" above the preview, then drag on the artwork to move it.</p>
+      <div class="slider-row"><span class="lbl">Scale</span><input type="range" id="logoScale" min="2" max="100" value="20"><span class="val" id="logoScaleVal">20%</span></div>
+      <div class="slider-row"><span class="lbl">Opacity</span><input type="range" id="logoOp" min="10" max="100" value="100"><span class="val" id="logoOpVal">100%</span></div>
+      <button class="centre-btn" id="logoCentreBtn">
+        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1.5-3.5"/><polyline points="2,2 2,5.5 5.5,5.5"/></svg>
+        Centre Logo
+      </button>
+    </div>
+  </div>
+  </div>
+
+  <!-- STICKER TAB -->
+  <div class="tab-panel" id="panel-sticker" style="display:none;">
+  <div class="card">
+    <div class="toggle-row">
+      <span class="kicker" style="margin-bottom:0;">Sticker Badge</span>
+      <div class="tog" id="stickerTog"></div>
+    </div>
+
+    <div id="stickerBody" style="display:none;margin-top:10px;">
+      <div class="mode-toggle" id="stickerModeSeg">
+        <button class="mode-btn active" data-smode="text">Text</button>
+        <button class="mode-btn" data-smode="image">Image</button>
+      </div>
+
+      <div id="stickerTextSettings" style="margin-top:12px;">
+        <div class="preset-row" id="presetRow"></div>
+        <div class="preset-editor" id="presetEditor">
+          <input type="text" class="text-field" id="peLine1" placeholder="Main line" style="margin-bottom:0;">
+          <input type="text" class="text-field" id="peLine2" placeholder="Subtext / URL" style="margin-bottom:0;">
+          <div class="preset-editor-actions">
+            <button class="pe-cancel" id="peCancel">Cancel</button>
+            <button class="pe-save" id="peSave">Save</button>
+          </div>
+        </div>
+        <input type="text" class="text-field" id="stkLine1" value="Available for Licensing" placeholder="Main line">
+        <input type="text" class="text-field" id="stkLine2" value="www.alfunoonstudio.com" placeholder="Subtext / URL (optional)" style="margin-bottom:9px;">
+
+        <div class="clr-block">
+          <div class="clr-block-label">Background Colour</div>
+          <div class="clr-choice-row">
+            <button class="clr-btn active" data-target="bg" data-choice="black"><span class="clr-swatch" style="background:#111111;"></span>Black</button>
+            <button class="clr-btn" data-target="bg" data-choice="white"><span class="clr-swatch" style="background:#ffffff;"></span>White</button>
+            <button class="clr-btn" data-target="bg" data-choice="pick">Pick from Image</button>
+            <div class="clr-current" id="bgCurrent" style="background:#111111;"></div>
+          </div>
+        </div>
+        <div class="clr-block">
+          <div class="clr-block-label">Text Colour</div>
+          <div class="clr-choice-row">
+            <button class="clr-btn" data-target="text" data-choice="black"><span class="clr-swatch" style="background:#111111;"></span>Black</button>
+            <button class="clr-btn active" data-target="text" data-choice="white"><span class="clr-swatch" style="background:#ffffff;"></span>White</button>
+            <button class="clr-btn" data-target="text" data-choice="pick">Pick from Image</button>
+            <div class="clr-current" id="textCurrent" style="background:#ffffff;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="stickerImageSettings" style="display:none;margin-top:12px;">
+        <input type="file" id="stkImgInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
+        <div class="upload-row">
+          <button class="btn-primary" id="stkImgBtn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V3M5 6l3-3 3 3M3 13h10"/></svg>
+            <span id="stkImgBtnLabel">Upload Image</span>
+          </button>
+          <button class="btn-remove" id="stkImgRemoveBtn">Remove</button>
+        </div>
+        <p class="compact-note">Uploaded once, shared by every image — position/size below are still per image.</p>
+        <div class="thumb-box" id="stkImgThumbRow" style="display:none;"><canvas class="thumb-cv" id="stkImgThumb"></canvas></div>
+      </div>
+
+      <p class="compact-note" style="margin-top:10px;">Tap "Sticker" above the preview, then drag on the artwork to move it.</p>
+      <div class="slider-row" style="margin-top:2px;"><span class="lbl">Width</span><input type="range" id="stkW" min="10" max="100" value="100"><span class="val" id="stkWVal">100%</span></div>
+      <div class="slider-row"><span class="lbl">Height</span><input type="range" id="stkH" min="4" max="50" value="14"><span class="val" id="stkHVal">14%</span></div>
+      <div class="slider-row"><span class="lbl">Opacity</span><input type="range" id="stkOp" min="10" max="100" value="100"><span class="val" id="stkOpVal">100%</span></div>
+      <button class="centre-btn" id="stkCentreBtn" style="margin-top:9px;">
+        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1.5-3.5"/><polyline points="2,2 2,5.5 5.5,5.5"/></svg>
+        Centre Badge
+      </button>
+    </div>
+  </div>
+  </div>
+
+  <button class="export-btn export-btn-secondary" id="downloadSelectedBtn" disabled style="display:none;">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
+    <span id="downloadSelectedBtnLabel">Download Selected Image</span>
+  </button>
+
+  <button class="export-btn" id="downloadBtn" disabled>
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
+    <span id="downloadBtnLabel">Download Image</span>
+  </button>
 
 </div>
 
+<!-- Live colour-pick loupe (magnifier preview shown while dragging on the artwork) -->
+<div class="pick-loupe-wrap" id="pickLoupe">
+  <div class="pick-loupe">
+    <canvas id="pickLoupeCanvas" width="96" height="96"></canvas>
+    <div class="loupe-ring"></div>
+    <div class="loupe-crosshair"></div>
+  </div>
+  <div class="loupe-swatch-row" id="pickLoupeSwatchRow">
+    <div class="loupe-swatch" id="pickLoupeSwatch"></div>
+    <span class="loupe-hex" id="pickLoupeHex">#000000</span>
+  </div>
+</div>
+
 <script>
-/* ────────────────────────────────────────────────────────────
-   State — one batch = one design group
-──────────────────────────────────────────────────────────── */
-let images = [];
-let activeId = null;
-let trends = null;
-let idCounter = 0;
+// ═══════════════════════════ STATE ═══════════════════════════
+// Every image in APP.images carries its OWN complete settings object —
+// layout mode, tile/single size, pan/zoom, logo placement, sticker
+// placement & text/colours. Nothing here is shared or forced from one
+// image onto another. The only things shared across the whole batch are
+// the uploaded LOGO/sticker-image bitmaps themselves (uploaded once) and
+// the export canvas size/format, exactly as requested.
+const APP = {
+  images:[], activeIndex:0,
+  exportW:1080, exportH:1080,
+  fmt:'png',
+  target:'layout', // 'layout' | 'size' | 'logo' | 'sticker' — which tab is active; drag on canvas follows it
+  pickingTarget:null // 'bg' | 'text' | null (sticker colour picking)
+};
+const LOGO_ASSET = { img:null };     // uploaded once, shared bitmap
+const STICKER_ASSET = { img:null };  // uploaded once, shared bitmap (sticker "image" mode)
 
-// Platform selection is now global to the whole batch (was per-image).
-// Every design in a batch is almost always headed to the same set of
-// platforms, and per-image checkboxes meant platform selection could
-// change mid-batch, which is what forced the old point-in-time
-// useBatchSplit snapshot + self-heal workaround in generate() below.
-// A single global set removes that race condition at the source.
-let selectedPlatforms = new Set();
+function clamp(v,lo,hi){ return Math.min(hi, Math.max(lo, v)); }
 
-// Cache for the batch-shared Spoonflower content (name/description/
-// sharedTags/licensingNote) generated once per design from the main
-// image, then reused across every colorway's per-image "colorway" call.
-// Invalidated whenever the color/mood toggle or the main image changes.
-let sharedSpoonflower = null;
-let sharedSpoonflowerFor = null; // { mainImageId, includeColorMood }
+function newImageState(img, fileName, url){
+  return {
+    img, fileName, url,
+    mode:'pattern', repeat:'full', tilePct:15, singlePct:90,
+    zoom:1, offX:0, offY:0,
+    logo:{ enabled:false, scale:20, x:88, y:88, opacity:100 },
+    sticker:{
+      enabled:false, mode:'text',
+      line1:'Available for Licensing', line2:'www.alfunoonstudio.com',
+      bg:'#111111', textColor:'#ffffff', radius:0,
+      width:100, height:14, x:50, y:93, opacity:100
+    }
+  };
+}
+function getActive(){ return APP.images[APP.activeIndex] || null; }
+function getActiveImg(){ const a = getActive(); return a ? a.img : null; }
+function getActiveFileName(){ const a = getActive(); return a ? a.fileName : 'post'; }
 
-const uploadBox   = document.getElementById('upload-box');
-const fileInput   = document.getElementById('file-input');
-const filmstrip   = document.getElementById('filmstrip');
-const filmstripWrap = document.getElementById('filmstrip-wrap');
-const designBar   = document.getElementById('design-bar');
-const workspace   = document.getElementById('workspace');
-const emptyState  = document.getElementById('empty-state');
-const colorMoodToggle = document.getElementById('color-mood-toggle');
-const clearBatchBtn   = document.getElementById('clear-batch-btn');
-const trendStatus      = document.getElementById('trend-status');
-const platformRow      = document.getElementById('platform-row');
+const DEFAULT_PRESETS = [
+  { label:'Licensing', line1:'Available for Licensing', line2:'www.alfunoonstudio.com' },
+  { label:'Spoonflower', line1:'Available on Spoonflower', line2:'www.alfunoonstudio.com' }
+];
+let PRESETS = DEFAULT_PRESETS;
+try { const saved = localStorage.getItem('scs_sticker_presets'); if (saved) PRESETS = JSON.parse(saved); } catch(e){}
+let editingPresetIndex = null;
 
-function renderPlatformRow(){
-  platformRow.innerHTML = '';
-  ['spoonflower','pinterest','instagram'].forEach(p => {
-    const label = document.createElement('label');
-    label.className = 'checkbox-pill' + (selectedPlatforms.has(p) ? ' checked' : '');
-    label.innerHTML = `<input type="checkbox" ${selectedPlatforms.has(p) ? 'checked' : ''}> ${p[0].toUpperCase()+p.slice(1)}`;
-    label.querySelector('input').addEventListener('change', () => toggleGlobalPlatform(p));
-    platformRow.appendChild(label);
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const canvasWrap = document.getElementById('canvasWrap');
+const empty = document.getElementById('empty');
+const dimsBadgeOverlay = document.getElementById('dimsBadgeOverlay');
+const targetBar = document.getElementById('targetBar');
+const repeatBar = document.getElementById('repeatBar');
+const dragHint = document.getElementById('dragHint');
+const zoomRow = document.getElementById('zoomRow');
+
+function updateDimsBadge(){
+  dimsBadgeOverlay.textContent = APP.exportW + ' × ' + APP.exportH + ' px';
+}
+function enableDownload(){
+  const n = APP.images.length;
+  document.getElementById('downloadBtn').disabled = n===0;
+  document.getElementById('downloadBtnLabel').textContent = n>1 ? `Download All (${n}) as ZIP` : 'Download Image';
+  const selBtn = document.getElementById('downloadSelectedBtn');
+  if (n>1){ selBtn.style.display = 'flex'; selBtn.disabled = false; }
+  else { selBtn.style.display = 'none'; }
+}
+
+// ═══════════════════════════ SWITCHING THE ACTIVE IMAGE ═══════════════════════════
+// Every control on screen is re-synced from the newly active image's own
+// stored settings — no bleed-through from whichever image was open before.
+function setActiveIndex(i){
+  APP.activeIndex = i;
+  const item = getActive();
+  if (!item) return;
+  // Don't leave the editing target pointed at an overlay that's off for this image.
+  if (APP.target==='logo' && !item.logo.enabled) APP.target='layout';
+  if (APP.target==='sticker' && !item.sticker.enabled) APP.target='layout';
+  syncActiveUI();
+}
+
+function syncActiveUI(){
+  const item = getActive();
+  if (!item) return;
+
+  // Layout mode
+  document.querySelectorAll('#modeSeg .mode-btn').forEach(b=> b.classList.toggle('active', b.dataset.mode===item.mode));
+  document.getElementById('patternSettings').style.display = item.mode==='pattern' ? 'block':'none';
+  document.getElementById('singleSettings').style.display = item.mode==='single' ? 'block':'none';
+  document.getElementById('tileSlider').value = item.tilePct;
+  document.getElementById('tileVal').textContent = item.tilePct+'%';
+  document.getElementById('singleSlider').value = item.singlePct;
+  document.getElementById('singleVal').textContent = item.singlePct+'%';
+
+  // Repeat
+  document.querySelectorAll('#repeatSeg .ps-seg-btn').forEach(b=> b.classList.toggle('active', b.dataset.repeat===item.repeat));
+
+  // Logo
+  const logoTog = document.getElementById('logoTog');
+  logoTog.classList.toggle('on', item.logo.enabled);
+  document.getElementById('logoControls').style.display = item.logo.enabled ? 'flex':'none';
+  document.getElementById('logoScale').value = item.logo.scale;
+  document.getElementById('logoScaleVal').textContent = item.logo.scale+'%';
+  document.getElementById('logoOp').value = item.logo.opacity;
+  document.getElementById('logoOpVal').textContent = item.logo.opacity+'%';
+
+  // Sticker
+  const stickerTog = document.getElementById('stickerTog');
+  stickerTog.classList.toggle('on', item.sticker.enabled);
+  document.getElementById('stickerBody').style.display = item.sticker.enabled ? 'block':'none';
+  document.querySelectorAll('#stickerModeSeg .mode-btn').forEach(b=> b.classList.toggle('active', b.dataset.smode===item.sticker.mode));
+  document.getElementById('stickerTextSettings').style.display = item.sticker.mode==='text' ? 'block':'none';
+  document.getElementById('stickerImageSettings').style.display = item.sticker.mode==='image' ? 'block':'none';
+  document.getElementById('stkLine1').value = item.sticker.line1;
+  document.getElementById('stkLine2').value = item.sticker.line2;
+  document.getElementById('bgCurrent').style.background = item.sticker.bg;
+  document.getElementById('textCurrent').style.background = item.sticker.textColor;
+  document.getElementById('stkW').value = item.sticker.width;
+  document.getElementById('stkWVal').textContent = item.sticker.width+'%';
+  document.getElementById('stkH').value = item.sticker.height;
+  document.getElementById('stkHVal').textContent = item.sticker.height+'%';
+  document.getElementById('stkOp').value = item.sticker.opacity;
+  document.getElementById('stkOpVal').textContent = item.sticker.opacity+'%';
+  syncPresetActive();
+
+  updateTargetUI();
+  render();
+}
+
+// Dragging on the canvas always follows the active tab: Layout and Size
+// both pan/zoom the base image; Logo and Sticker move/resize themselves.
+function dragTarget(){
+  return (APP.target==='logo' || APP.target==='sticker') ? APP.target : 'image';
+}
+
+const TAB_PANELS = ['layout','size','logo','sticker'];
+function updateTargetUI(){
+  const item = getActive();
+  document.querySelectorAll('#targetSeg .ps-seg-btn').forEach(b=> b.classList.toggle('active', b.dataset.target===APP.target));
+  document.getElementById('targetStickerBtn').disabled = false;
+
+  // Only the settings for the tab you're on are shown — everything else stays out of the way.
+  TAB_PANELS.forEach(t=>{
+    const panel = document.getElementById('panel-'+t);
+    if (panel) panel.style.display = (t===APP.target) ? 'flex' : 'none';
   });
+
+  repeatBar.style.display = (APP.target==='layout' && item && item.mode==='pattern') ? 'flex' : 'none';
+  zoomRow.style.display = dragTarget()==='image' ? 'flex' : 'none';
+  const hints = {
+    layout:'Drag to pan the artwork · pinch or scroll to zoom',
+    size:'Drag to pan the artwork · pinch or scroll to zoom',
+    logo:'Drag the logo to move it · pinch or scroll to resize',
+    sticker:'Drag the sticker to move it · pinch or scroll to resize'
+  };
+  dragHint.textContent = hints[APP.target] || '';
 }
 
-function toggleGlobalPlatform(platform){
-  if(selectedPlatforms.has(platform)) selectedPlatforms.delete(platform);
-  else selectedPlatforms.add(platform);
-  render();
-}
-
-uploadBox.addEventListener('click', () => fileInput.click());
-['dragenter','dragover'].forEach(evt => uploadBox.addEventListener(evt, e => { e.preventDefault(); uploadBox.classList.add('drag-over'); }));
-['dragleave','drop'].forEach(evt => uploadBox.addEventListener(evt, e => { e.preventDefault(); uploadBox.classList.remove('drag-over'); }));
-uploadBox.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
-fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
-
-clearBatchBtn.addEventListener('click', () => {
-  if(images.length && !confirm('Clear all images and start a new design? Trend research cache will reset too.')) return;
-  images = []; activeId = null; trends = null;
-  sharedSpoonflower = null; sharedSpoonflowerFor = null;
-  trendStatus.textContent = '';
-  render();
-});
-
-// Changing the toggle changes what belongs in the shared vs per-colorway
-// content (e.g. whether "name" is shared or per-image), so the cached
-// shared content is no longer valid and must be regenerated.
-colorMoodToggle.addEventListener('change', () => {
-  sharedSpoonflower = null; sharedSpoonflowerFor = null;
-});
-
-function handleFiles(fileList){
-  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
-  if(!files.length) return;
-  if(images.length + files.length > 10){
-    alert('Max 10 images per batch. Currently have ' + images.length + ', can add ' + Math.max(0,10-images.length) + ' more.');
+function setTarget(t){
+  APP.target = t;
+  const item = getActive();
+  if (item){
+    if (t==='logo' && LOGO_ASSET.img) item.logo.enabled = true;
+    if (t==='sticker') item.sticker.enabled = true;
   }
-  files.slice(0, Math.max(0, 10 - images.length)).forEach(readAndResize);
+  syncActiveUI();
 }
+document.querySelectorAll('#targetSeg .ps-seg-btn').forEach(b=>{
+  b.addEventListener('click', ()=> setTarget(b.dataset.target));
+});
 
-function readAndResize(file){
-  const reader = new FileReader();
-  reader.onload = e => {
+// ═══════════════════════════ ARTWORK UPLOAD (BATCH) ═══════════════════════════
+const MAX_IMAGES = 10;
+const artInput = document.getElementById('artInput');
+document.getElementById('artBtn').addEventListener('click', () => artInput.click());
+artInput.addEventListener('change', e => {
+  const files = Array.from(e.target.files || []); artInput.value='';
+  if (!files.length) return;
+  loadArtFiles(files);
+});
+function loadArtFiles(files){
+  const room = MAX_IMAGES - APP.images.length;
+  if (room <= 0){ alert('You can upload up to '+MAX_IMAGES+' images at a time.'); return; }
+  const toLoad = files.slice(0, room);
+  if (files.length > room) alert('Only the first '+room+' image(s) were added (10 max per batch).');
+  let pending = toLoad.length;
+  toLoad.forEach(file => {
+    const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const w = img.naturalWidth, h = img.naturalHeight;
-      let targetW, targetH;
-      // Reduced from 1000px/0.88 quality to 800px/0.75 quality. This is
-      // still plenty of resolution for the model to read technique,
-      // motif, layout, and color accurately, but meaningfully cuts the
-      // upload payload size — which matters most on mobile connections,
-      // since a slow upload (not slow server processing) was confirmed
-      // as the actual cause of a prior timeout (function log showed
-      // 11s server-side duration well under both the client and server
-      // timeout ceilings, meaning the time was being lost in transit).
-      //
-      // FIXED: this used to always scale to exactly 800px on the short
-      // side, which meant an image already SMALLER than 800px (e.g. a
-      // 300x300 upload) got scaled UP instead of left alone. Upscaling
-      // doesn't add real detail, it just interpolates blur, so it was
-      // pure wasted cost: more image tokens sent to the model for zero
-      // quality benefit (image tokens scale with pixel count, not with
-      // how much real detail is in the image). The scale factor is now
-      // capped at 1, so anything already at or under 800px passes
-      // through at its native size — only images LARGER than 800px get
-      // downscaled.
-      if (w === h) {
-        targetW = Math.min(w, 800);
-        targetH = Math.min(h, 800);
-      } else {
-        const scale = Math.min(800 / Math.min(w, h), 1); // never > 1 (never upscale)
-        targetW = Math.round(w * scale);
-        targetH = Math.round(h * scale);
+      // Fresh, independent defaults for every new image — never inherited
+      // from whichever image happens to be active right now.
+      APP.images.push(newImageState(img, file.name.replace(/\.[^.]+$/,''), url));
+      pending--;
+      if (pending===0){
+        refreshArtUI();
+        setActiveIndex(APP.images.length-1);
+        enableDownload();
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = targetW; canvas.height = targetH;
-      canvas.getContext('2d').drawImage(img, 0, 0, targetW, targetH);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      const base64 = dataUrl.split(',')[1];
-
-      const newImg = {
-        id: 'img-' + (idCounter++),
-        base64, mediaType: 'image/jpeg',
-        width: targetW, height: targetH,
-        name: file.name, dataUrl,
-        isMain: images.length === 0,
-        // (platform selection is now global, see selectedPlatforms — no
-        // per-image platforms field needed anymore)
-        links: { pinterest: '', instagram: '' },
-        designId: '',
-        keywordOverride: '', showOverride: false,
-        results: {}, loading: false, error: null,
-      };
-      images.push(newImg);
-      if(activeId === null) activeId = newImg.id;
-      render();
     };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function setMain(id){
-  images.forEach(img => img.isMain = (img.id === id));
-  // Shared Spoonflower content was analyzed from the old main image;
-  // a new main image means it should be regenerated from that image instead.
-  sharedSpoonflower = null; sharedSpoonflowerFor = null;
-  render();
-}
-function selectImage(id){ activeId = id; render(); }
-function removeImage(id){
-  images = images.filter(img => img.id !== id);
-  if(images.length && !images.some(i => i.isMain)) images[0].isMain = true;
-  if(activeId === id) activeId = images.length ? images[0].id : null;
-  render();
-}
-
-/* ────────────────────────────────────────────────────────────
-   Network helper — timeout + safe JSON parsing
-   ────────────────────────────────────────────────────────────
-   Both Netlify functions can, in the worst case, run long enough to
-   hit Netlify's server-side function timeout (confirmed via function
-   logs hitting the 30s ceiling on research-trends). When that happens
-   Netlify does not return your function's JSON body, it returns its
-   own timeout response — and calling res.json() on that throws a
-   cryptic browser-specific error (Safari/WebKit renders this as
-   "The string did not match the expected pattern", which is its
-   generic message for a JSON.parse failure, not a useful description
-   of what actually happened).
-
-   This wrapper adds two layers of defense:
-   1. A client-side AbortController timeout, set just under Netlify's
-      server-side ceiling, so a hung request fails on our terms with a
-      clear message instead of waiting for the server to kill it.
-   2. Read the response as text first and JSON.parse it ourselves, so a
-      non-JSON body (timeout page, cold-start error page, etc) produces
-      a readable error instead of a browser-internal parse exception.
-──────────────────────────────────────────────────────────── */
-async function fetchJSON(url, options, timeoutMs = 28000){
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  let res;
-  try {
-    res = await fetch(url, { ...options, signal: controller.signal });
-  } catch(err){
-    if(err.name === 'AbortError'){
-      throw new Error('The request took too long and timed out after ' + Math.round(timeoutMs/1000) + 's. This can happen when trend research or generation takes unusually long — try again.');
-    }
-    throw new Error('Network error: ' + (err.message || 'could not reach the server') + '. Check your connection and try again.');
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  const raw = await res.text();
-  let data;
-  try {
-    data = raw ? JSON.parse(raw) : {};
-  } catch(e){
-    throw new Error('Server returned an unreadable response (status ' + res.status + '). This usually means the function took too long to respond. Try again.');
-  }
-
-  if(!res.ok){
-    throw new Error(data.error || ('Server error (status ' + res.status + ')'));
-  }
-
-  return data;
-}
-
-/* ────────────────────────────────────────────────────────────
-   Generate
-──────────────────────────────────────────────────────────── */
-async function ensureTrends(refImg){
-  if(trends) return;
-  trendStatus.textContent = 'Researching trends…';
-  const tData = await fetchJSON('/.netlify/functions/research-trends', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ imageBase64: refImg.base64, mediaType: refImg.mediaType }),
-  }, 28000);
-  trends = tData.trends;
-  trendStatus.textContent = 'Trends cached (' + (trends.keywords||[]).length + ' keywords)';
-}
-
-// Generates (or returns the cached) design-level Spoonflower content —
-// name (only when color/mood is off), description, sharedTags,
-// licensingNote — from the main image, then syncs it onto every image
-// that already has Spoonflower results so nothing in the batch can be
-// left showing a stale/mismatched title or description.
-async function ensureSharedSpoonflowerContent(){
-  const includeColorMood = colorMoodToggle.checked;
-  const mainImg = images.find(i => i.isMain) || images[0];
-  const stillValid = sharedSpoonflower && sharedSpoonflowerFor
-    && sharedSpoonflowerFor.mainImageId === mainImg.id
-    && sharedSpoonflowerFor.includeColorMood === includeColorMood;
-
-  if(!stillValid){
-    await ensureTrends(mainImg);
-    const manualKeywords = (mainImg.keywordOverride && mainImg.keywordOverride.trim()) ? mainImg.keywordOverride : '';
-
-    const data = await fetchJSON('/.netlify/functions/generate-ai-content', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        mode: 'shared',
-        imageBase64: mainImg.base64, mediaType: mainImg.mediaType,
-        includeColorMood, trends, manualKeywords,
-      }),
-    }, 28000);
-
-    sharedSpoonflower = { ...data.results.spoonflower, licensingNote: data.results.licensingNote };
-    sharedSpoonflowerFor = { mainImageId: mainImg.id, includeColorMood };
-  }
-
-  // Self-heal: overwrite name (only when it's meant to be shared, i.e.
-  // color/mood off)/description/sharedTags on every already-generated
-  // image so an image generated before this cache existed (or under a
-  // different main image / toggle state) can't keep showing mismatched
-  // text. colorwayTags are untouched, those are correctly per-image.
-  images.forEach(other => {
-    const sf = other.results && other.results.spoonflower;
-    if(!sf) return;
-    sf.description = sharedSpoonflower.description;
-    sf.sharedTags = sharedSpoonflower.sharedTags;
-    if(sharedSpoonflower.name !== undefined) sf.name = sharedSpoonflower.name;
+    img.src = url;
   });
-
-  return sharedSpoonflower;
 }
+function refreshArtUI(){
+  const has = APP.images.length>0;
+  document.getElementById('artBtnLabel').textContent = has ? 'Add More Images' : 'Upload Tiles / Mockups';
+  document.getElementById('artRemoveBtn').style.display = has ? '' : 'none';
+  document.getElementById('artHint').style.display = has ? 'none' : '';
+  empty.style.display = has ? 'none' : 'flex';
+  canvas.style.display = has ? 'block' : 'none';
+  targetBar.style.display = has ? 'flex' : 'none';
+  dimsBadgeOverlay.style.display = has ? 'block' : 'none';
+  dragHint.style.display = has ? 'block' : 'none';
 
-async function generate(id){
-  const img = images.find(i => i.id === id);
-  const platforms = Array.from(selectedPlatforms);
-  if(!platforms.length) return;
+  const strip = document.getElementById('batchStrip');
+  const countEl = document.getElementById('batchCount');
+  if (!has){
+    strip.style.display='none'; countEl.style.display='none';
+    strip.innerHTML=''; repeatBar.style.display='none'; return;
+  }
+  strip.style.display='flex'; countEl.style.display='block';
+  countEl.textContent = APP.images.length + ' of ' + MAX_IMAGES + ' images — tap to select';
+  strip.innerHTML='';
+  APP.images.forEach((item, i) => {
+    const box = document.createElement('div');
+    box.className = 'batch-thumb' + (i===APP.activeIndex ? ' active' : '');
+    const im = document.createElement('img'); im.src = item.img.src;
+    const bx = document.createElement('button'); bx.className='bx'; bx.title='Remove';
+    bx.innerHTML = '<svg viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="1.5"><path d="M1 1l8 8M9 1l-8 8"/></svg>';
+    bx.addEventListener('click', ev => { ev.stopPropagation(); removeImage(i); });
+    box.appendChild(im); box.appendChild(bx);
+    box.addEventListener('click', () => { setActiveIndex(i); refreshArtUI(); });
+    strip.appendChild(box);
+  });
+  if (APP.images.length < MAX_IMAGES){
+    const add = document.createElement('div'); add.className='batch-add';
+    add.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10M3 8h10"/></svg>';
+    add.addEventListener('click', () => artInput.click());
+    strip.appendChild(add);
+  }
+}
+function removeImage(i){
+  const item = APP.images[i];
+  if (item && item.url) URL.revokeObjectURL(item.url);
+  APP.images.splice(i,1);
+  refreshArtUI();
+  setActiveIndex(APP.activeIndex >= APP.images.length ? Math.max(0, APP.images.length-1) : APP.activeIndex);
+  enableDownload();
+}
+document.getElementById('artRemoveBtn').addEventListener('click', () => {
+  APP.images.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
+  APP.images = []; APP.activeIndex = 0;
+  refreshArtUI(); render(); enableDownload();
+});
 
-  img.loading = true; img.error = null; render();
+// ═══════════════════════════ MODE / REPEAT (per active image) ═══════════════════════════
+document.querySelectorAll('#modeSeg .mode-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const item = getActive(); if (!item) return;
+    item.mode = b.dataset.mode;
+    syncActiveUI();
+  });
+});
+function setRepeat(val){
+  const item = getActive(); if (!item) return;
+  item.repeat = val;
+  syncActiveUI();
+}
+document.querySelectorAll('#repeatSeg .ps-seg-btn').forEach(b=> b.addEventListener('click', ()=> setRepeat(b.dataset.repeat)));
 
-  try {
-    await ensureTrends(img);
-    const manualKeywords = (img.keywordOverride && img.keywordOverride.trim()) ? img.keywordOverride : '';
-    const includeColorMood = colorMoodToggle.checked;
+document.getElementById('tileSlider').addEventListener('input', function(){
+  const item = getActive(); if (!item) return;
+  item.tilePct = +this.value;
+  document.getElementById('tileVal').textContent = this.value+'%';
+  render();
+});
+document.getElementById('singleSlider').addEventListener('input', function(){
+  const item = getActive(); if (!item) return;
+  item.singlePct = +this.value;
+  document.getElementById('singleVal').textContent = this.value+'%';
+  render();
+});
 
-    // Split into shared+colorway calls whenever 2+ images are in the batch
-    // and Spoonflower is selected. Platform selection is now global to the
-    // whole batch (not per-image), so every image always shares the exact
-    // same platform set — this check no longer needs to be a point-in-time
-    // snapshot of which images have Spoonflower ticked. (The old per-image
-    // checkbox version of this could see an earlier image get generated
-    // solo, in full mode, before a later image's box was ticked, which is
-    // why ensureSharedSpoonflowerContent's self-heal pass below still
-    // exists — that's kept, since it also covers main-image and
-    // color/mood-toggle changes, but the race this specific check used to
-    // guard against can no longer happen.)
-    const useBatchSplit = platforms.includes('spoonflower') && images.length > 1;
-
-    let data;
-    if(useBatchSplit){
-      const shared = await ensureSharedSpoonflowerContent();
-      data = await fetchJSON('/.netlify/functions/generate-ai-content', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          mode: 'colorway',
-          imageBase64: img.base64, mediaType: img.mediaType,
-          platforms, links: img.links,
-          includeColorMood, trends, manualKeywords,
-          sharedSpoonflower: shared,
-        }),
-      }, 29000); // was 28000: small stopgap bump now that the shared/colorway
-      // cache-mismatch fix (see generate-ai-content.js) should cut typical
-      // colorway latency substantially. Kept just under the confirmed 30s
-      // Netlify function ceiling, not pushed further, since exceeding that
-      // ceiling doesn't get more time, it just swaps a clear timeout message
-      // for a cryptic "unreadable response" one when Netlify kills it first.
-      if(platforms.includes('spoonflower')) img.licensingNote = shared.licensingNote;
+// ═══════════════════════════ CANVAS SIZE (shared export size) ═══════════════════════════
+document.querySelectorAll('#sizeChips .sh-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#sizeChips .sh-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    if (chip.dataset.custom){
+      document.getElementById('customRow').style.display='flex';
+      readCustomSize();
     } else {
-      data = await fetchJSON('/.netlify/functions/generate-ai-content', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          imageBase64: img.base64, mediaType: img.mediaType,
-          platforms, links: img.links,
-          includeColorMood, trends, manualKeywords,
-        }),
-      }, 28000);
-      if(data.results.licensingNote) img.licensingNote = data.results.licensingNote;
+      document.getElementById('customRow').style.display='none';
+      APP.exportW = parseInt(chip.dataset.w);
+      APP.exportH = parseInt(chip.dataset.h);
+      updateDimsBadge(); render();
     }
+  });
+});
+function readCustomSize(){
+  APP.exportW = Math.max(100, Math.min(6000, parseInt(document.getElementById('cw').value)||1200));
+  APP.exportH = Math.max(100, Math.min(6000, parseInt(document.getElementById('ch').value)||1200));
+  updateDimsBadge(); render();
+}
+document.getElementById('cw').addEventListener('input', readCustomSize);
+document.getElementById('ch').addEventListener('input', readCustomSize);
 
-    platforms.forEach(p => { img.results[p] = data.results[p]; });
-    img.loading = false;
-  } catch(err){
-    console.error(err);
-    img.loading = false;
-    img.error = err.message || 'Something went wrong. Please try again.';
+// ═══════════════════════════ ZOOM CONTROLS (image target only) ═══════════════════════════
+document.getElementById('zFitBtn').addEventListener('click', ()=>{
+  const item = getActive(); if (!item) return;
+  item.zoom=1; item.offX=0; item.offY=0; render();
+});
+document.getElementById('z1to1Btn').addEventListener('click', ()=>{
+  const item = getActive(); if (!item || !item.img) return;
+  if (item.mode==='pattern'){
+    const baseTileW = Math.max(4, Math.round(canvas.width * item.tilePct/100));
+    item.zoom = item.img.naturalWidth / baseTileW;
+  } else { item.zoom = 1; }
+  render();
+});
+
+// ═══════════════════════════ LOGO ASSET (uploaded once, shared) ═══════════════════════════
+const logoInput = document.getElementById('logoInput');
+document.getElementById('logoBtn').addEventListener('click', ()=> logoInput.click());
+logoInput.addEventListener('change', function(e){
+  const file = e.target.files[0]; this.value='';
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = ()=>{
+    LOGO_ASSET.img = img; URL.revokeObjectURL(url);
+    refreshLogoAssetUI();
+    syncActiveUI();
+  };
+  img.src = url;
+});
+document.getElementById('logoRemoveBtn').addEventListener('click', ()=>{
+  LOGO_ASSET.img = null;
+  APP.images.forEach(it => it.logo.enabled = false);
+  if (APP.target==='logo') APP.target='layout';
+  refreshLogoAssetUI();
+  syncActiveUI();
+});
+function refreshLogoAssetUI(){
+  const has = !!LOGO_ASSET.img;
+  document.getElementById('logoBtnLabel').textContent = has ? 'Replace Logo' : 'Upload Logo';
+  document.getElementById('logoRemoveBtn').style.display = has ? '' : 'none';
+  document.getElementById('logoHint').style.display = has ? 'none' : '';
+  if (has){
+    const t = document.getElementById('logoThumb');
+    const r = Math.min(76/LOGO_ASSET.img.naturalWidth, 76/LOGO_ASSET.img.naturalHeight,1);
+    const w=Math.max(1,Math.round(LOGO_ASSET.img.naturalWidth*r)), h=Math.max(1,Math.round(LOGO_ASSET.img.naturalHeight*r));
+    t.width=w; t.height=h;
+    t.getContext('2d').drawImage(LOGO_ASSET.img,0,0,w,h);
   }
+}
+document.getElementById('logoTog').addEventListener('click', ()=>{
+  const item = getActive(); if (!item) return;
+  if (!LOGO_ASSET.img){ logoInput.click(); return; }
+  item.logo.enabled = !item.logo.enabled;
+  if (item.logo.enabled) APP.target='logo';
+  else if (APP.target==='logo') APP.target='layout';
+  syncActiveUI();
+});
+document.getElementById('logoScale').addEventListener('input', function(){
+  const item = getActive(); if (!item) return;
+  item.logo.scale = +this.value;
+  document.getElementById('logoScaleVal').textContent = this.value+'%';
+  render();
+});
+document.getElementById('logoOp').addEventListener('input', function(){
+  const item = getActive(); if (!item) return;
+  item.logo.opacity = +this.value;
+  document.getElementById('logoOpVal').textContent = this.value+'%';
+  render();
+});
+document.getElementById('logoCentreBtn').addEventListener('click', ()=>{
+  const item = getActive(); if (!item) return;
+  item.logo.x = 88; item.logo.y = 88;
+  render();
+});
+
+// ═══════════════════════════ STICKER (per active image; image-mode bitmap shared once) ═══════════════════════════
+const stkImgInput = document.getElementById('stkImgInput');
+document.getElementById('stkImgBtn').addEventListener('click', ()=> stkImgInput.click());
+stkImgInput.addEventListener('change', function(e){
+  const file = e.target.files[0]; this.value='';
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = ()=>{ STICKER_ASSET.img = img; URL.revokeObjectURL(url); refreshStickerAssetUI(); render(); };
+  img.src = url;
+});
+document.getElementById('stkImgRemoveBtn').addEventListener('click', ()=>{ STICKER_ASSET.img=null; refreshStickerAssetUI(); render(); });
+function refreshStickerAssetUI(){
+  const has = !!STICKER_ASSET.img;
+  document.getElementById('stkImgBtnLabel').textContent = has ? 'Replace Image' : 'Upload Image';
+  document.getElementById('stkImgRemoveBtn').style.display = has ? '' : 'none';
+  document.getElementById('stkImgThumbRow').style.display = has ? 'flex':'none';
+  if (has){
+    const t = document.getElementById('stkImgThumb');
+    const r = Math.min(76/STICKER_ASSET.img.naturalWidth, 76/STICKER_ASSET.img.naturalHeight,1);
+    const w=Math.max(1,Math.round(STICKER_ASSET.img.naturalWidth*r)), h=Math.max(1,Math.round(STICKER_ASSET.img.naturalHeight*r));
+    t.width=w; t.height=h;
+    t.getContext('2d').drawImage(STICKER_ASSET.img,0,0,w,h);
+  }
+}
+
+const stickerTog = document.getElementById('stickerTog');
+stickerTog.addEventListener('click', ()=>{
+  const item = getActive(); if (!item) return;
+  item.sticker.enabled = !item.sticker.enabled;
+  if (item.sticker.enabled) APP.target='sticker';
+  else if (APP.target==='sticker') APP.target='layout';
+  syncActiveUI();
+});
+document.querySelectorAll('#stickerModeSeg .mode-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const item = getActive(); if (!item) return;
+    item.sticker.mode = b.dataset.smode;
+    syncActiveUI();
+  });
+});
+document.getElementById('stkLine1').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.line1=this.value; syncPresetActive(); render(); });
+document.getElementById('stkLine2').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.line2=this.value; syncPresetActive(); render(); });
+
+// ── quick-select presets ──
+function savePresets(){ try{ localStorage.setItem('scs_sticker_presets', JSON.stringify(PRESETS)); }catch(e){} }
+function syncPresetActive(){
+  const item = getActive();
+  document.querySelectorAll('.preset-chip').forEach((chip,i)=>{
+    const p = PRESETS[i];
+    chip.classList.toggle('active', !!item && p.line1===item.sticker.line1 && p.line2===item.sticker.line2);
+  });
+}
+function renderPresets(){
+  const row = document.getElementById('presetRow');
+  row.innerHTML = '';
+  PRESETS.forEach((p,i)=>{
+    const chip = document.createElement('div');
+    chip.className = 'preset-chip';
+    const lbl = document.createElement('span'); lbl.className='preset-label'; lbl.textContent = p.label;
+    const pencil = document.createElement('button'); pencil.className='preset-edit'; pencil.type='button';
+    pencil.innerHTML = '<svg viewBox="0 0 14 14" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"><path d="M9.5 2.5l2 2L4.5 11.5 2 12l.5-2.5 7-7z"/></svg>';
+    chip.appendChild(lbl); chip.appendChild(pencil);
+    chip.addEventListener('click', ()=>{
+      const item = getActive(); if (!item) return;
+      item.sticker.line1 = p.line1; item.sticker.line2 = p.line2;
+      document.getElementById('stkLine1').value = p.line1;
+      document.getElementById('stkLine2').value = p.line2;
+      syncPresetActive(); render();
+    });
+    pencil.addEventListener('click', ev=>{ ev.stopPropagation(); openPresetEditor(i); });
+    row.appendChild(chip);
+  });
+  syncPresetActive();
+}
+function openPresetEditor(i){
+  editingPresetIndex = i;
+  document.getElementById('peLine1').value = PRESETS[i].line1;
+  document.getElementById('peLine2').value = PRESETS[i].line2;
+  document.getElementById('presetEditor').classList.add('open');
+}
+document.getElementById('peSave').addEventListener('click', ()=>{
+  if (editingPresetIndex===null) return;
+  const l1 = document.getElementById('peLine1').value.trim() || PRESETS[editingPresetIndex].line1;
+  const l2 = document.getElementById('peLine2').value.trim();
+  PRESETS[editingPresetIndex].line1 = l1;
+  PRESETS[editingPresetIndex].line2 = l2;
+  savePresets(); renderPresets();
+  document.getElementById('presetEditor').classList.remove('open');
+  editingPresetIndex = null;
+});
+document.getElementById('peCancel').addEventListener('click', ()=>{
+  document.getElementById('presetEditor').classList.remove('open');
+  editingPresetIndex = null;
+});
+renderPresets();
+
+// ── colour choice buttons (black / white / pick from image) ──
+document.querySelectorAll('.clr-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const item = getActive(); if (!item) return;
+    const target = btn.dataset.target, choice = btn.dataset.choice;
+    document.querySelectorAll(`.clr-btn[data-target="${target}"]`).forEach(b=>b.classList.remove('active'));
+    if (choice==='pick'){
+      APP.pickingTarget = target;
+      canvas.classList.add('picking');
+      document.getElementById('pickBadge').classList.add('show');
+      return; // 'active' state applied once colour is actually picked, in applyPickedColor
+    }
+    btn.classList.add('active');
+    const hex = choice==='black' ? '#111111' : '#ffffff';
+    if (target==='bg'){ item.sticker.bg = hex; document.getElementById('bgCurrent').style.background = hex; }
+    else { item.sticker.textColor = hex; document.getElementById('textCurrent').style.background = hex; }
+    render();
+  });
+});
+document.getElementById('stkW').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.width=+this.value; document.getElementById('stkWVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkH').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.height=+this.value; document.getElementById('stkHVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkOp').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.opacity=+this.value; document.getElementById('stkOpVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkCentreBtn').addEventListener('click', ()=>{
+  const item = getActive(); if (!item) return;
+  item.sticker.x=50; item.sticker.y=93;
+  render();
+});
+
+// ═══════════════════════════ FORMAT ═══════════════════════════
+document.getElementById('fmtPng').addEventListener('click', function(){
+  APP.fmt='png'; this.classList.add('active'); document.getElementById('fmtJpg').classList.remove('active');
+});
+document.getElementById('fmtJpg').addEventListener('click', function(){
+  APP.fmt='jpg'; this.classList.add('active'); document.getElementById('fmtPng').classList.remove('active');
+});
+
+// ═══════════════════════════ DRAWING ═══════════════════════════
+function drawTiled(c, W, H, srcImg, tilePct, repeat, zoom, offX, offY){
+  c.clearRect(0,0,W,H);
+  const baseTileW = Math.max(4, Math.round(W * tilePct/100));
+  const baseTileH = Math.max(4, Math.round(baseTileW * srcImg.naturalHeight/srcImg.naturalWidth));
+  const tw = Math.max(1, Math.round(baseTileW*zoom)), th = Math.max(1, Math.round(baseTileH*zoom));
+  const tileCanvas = document.createElement('canvas');
+  tileCanvas.width=tw; tileCanvas.height=th;
+  tileCanvas.getContext('2d').drawImage(srcImg,0,0,tw,th);
+  const iTW=Math.ceil(tw), iTH=Math.ceil(th);
+  if (repeat==='full'){
+    const c0=Math.floor(-offX/tw)-1, c1=Math.ceil((W-offX)/tw)+1;
+    const r0=Math.floor(-offY/th)-1, r1=Math.ceil((H-offY)/th)+1;
+    for(let r=r0;r<=r1;r++) for(let cx=c0;cx<=c1;cx++) c.drawImage(tileCanvas, Math.floor(cx*tw+offX), Math.floor(r*th+offY), iTW, iTH);
+  } else if (repeat==='halfdrop'){
+    const c0=Math.floor(-offX/tw)-1, c1=Math.ceil((W-offX)/tw)+1;
+    for(let cx=c0;cx<=c1;cx++){
+      const bx=Math.floor(cx*tw+offX); const shift=(((cx%2)+2)%2)*(th/2); const effPy=offY+shift;
+      const r0=Math.floor(-effPy/th)-1, r1=Math.ceil((H-effPy)/th)+1;
+      for(let r=r0;r<=r1;r++) c.drawImage(tileCanvas, bx, Math.floor(r*th+effPy), iTW, iTH);
+    }
+  } else if (repeat==='halfbrick'){
+    const r0=Math.floor(-offY/th)-1, r1=Math.ceil((H-offY)/th)+1;
+    for(let r=r0;r<=r1;r++){
+      const by=Math.floor(r*th+offY); const shift=(((r%2)+2)%2)*(tw/2); const effPx=offX+shift;
+      const c0=Math.floor(-effPx/tw)-1, c1=Math.ceil((W-effPx)/tw)+1;
+      for(let cx=c0;cx<=c1;cx++) c.drawImage(tileCanvas, Math.floor(cx*tw+effPx), by, iTW, iTH);
+    }
+  }
+}
+function drawSingle(c, W, H, srcImg, pct, zoom, offX, offY){
+  c.clearRect(0,0,W,H);
+  const fitSide = Math.min(W,H)*(pct/100)*zoom;
+  const ar = srcImg.naturalWidth/srcImg.naturalHeight;
+  let dw,dh;
+  if (ar>=1){ dw=fitSide; dh=fitSide/ar; } else { dh=fitSide; dw=fitSide*ar; }
+  const dx=(W-dw)/2+offX, dy=(H-dh)/2+offY;
+  c.drawImage(srcImg, dx, dy, dw, dh);
+}
+function drawLogo(c, W, H, item){
+  if (!LOGO_ASSET.img || !item.logo.enabled) return;
+  const state = item.logo;
+  const nw=LOGO_ASSET.img.naturalWidth||1, nh=LOGO_ASSET.img.naturalHeight||1;
+  let dW = Math.max(1, W*state.scale/100), dH = dW*nh/nw;
+  if (dH>H){ dW*=H/dH; dH=H; }
+  if (dW>W){ dH*=W/dW; dW=W; }
+  dW=Math.max(1,Math.round(dW)); dH=Math.max(1,Math.round(dH));
+  let dx = Math.round(W*state.x/100 - dW/2), dy = Math.round(H*state.y/100 - dH/2);
+  dx = Math.min(Math.max(dx,0), Math.max(0,W-dW));
+  dy = Math.min(Math.max(dy,0), Math.max(0,H-dH));
+  c.save(); c.globalAlpha = state.opacity/100; c.drawImage(LOGO_ASSET.img, dx, dy, dW, dH); c.restore();
+}
+function roundRectPath(c,x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+function drawStickerText(c, W, H, s){
+  const dW = Math.max(1, W*s.width/100), dH = Math.max(1, H*s.height/100);
+  let dx = Math.round(W*s.x/100 - dW/2), dy = Math.round(H*s.y/100 - dH/2);
+  dx = Math.min(Math.max(dx,0), Math.max(0,W-dW));
+  dy = Math.min(Math.max(dy,0), Math.max(0,H-dH));
+  c.save();
+  c.globalAlpha = s.opacity/100;
+  roundRectPath(c, dx, dy, dW, dH, s.radius);
+  c.fillStyle = s.bg;
+  c.fill();
+  c.fillStyle = s.textColor;
+  c.textAlign='center'; c.textBaseline='middle';
+  const cx = dx+dW/2;
+  const hasLine2 = s.line2 && s.line2.trim().length>0;
+  const line1Size = Math.max(8, dH * (hasLine2 ? 0.30 : 0.38));
+  const line2Size = Math.max(7, dH * 0.19);
+  if (hasLine2){
+    c.font = `500 ${line1Size}px 'Cormorant Garamond', Georgia, serif`;
+    c.fillText(s.line1, cx, dy+dH*0.40, dW*0.92);
+    c.font = `400 ${line2Size}px 'Outfit', system-ui, sans-serif`;
+    c.fillText(s.line2, cx, dy+dH*0.70, dW*0.92);
+  } else {
+    c.font = `500 ${line1Size}px 'Cormorant Garamond', Georgia, serif`;
+    c.fillText(s.line1, cx, dy+dH*0.52, dW*0.92);
+  }
+  c.restore();
+}
+function drawStickerImage(c, W, H, s){
+  if (!STICKER_ASSET.img) return;
+  const nw=STICKER_ASSET.img.naturalWidth||1, nh=STICKER_ASSET.img.naturalHeight||1;
+  const boxW = Math.max(1, W*s.width/100), boxH = Math.max(1, H*s.height/100);
+  let finalW = boxW, finalH = finalW*nh/nw;
+  if (finalH > boxH){ finalH = boxH; finalW = finalH*nw/nh; }
+  let dx = Math.round(W*s.x/100 - finalW/2), dy = Math.round(H*s.y/100 - finalH/2);
+  dx = Math.min(Math.max(dx,0), Math.max(0,W-finalW));
+  dy = Math.min(Math.max(dy,0), Math.max(0,H-finalH));
+  c.save(); c.globalAlpha = s.opacity/100; c.drawImage(STICKER_ASSET.img, dx, dy, finalW, finalH); c.restore();
+}
+
+function renderTo(c, W, H, offXScale, offYScale, itemOverride){
+  offXScale = offXScale===undefined?1:offXScale;
+  offYScale = offYScale===undefined?1:offYScale;
+  const item = itemOverride!==undefined ? itemOverride : getActive();
+  if (!item || !item.img){ c.clearRect(0,0,W,H); return; }
+  c.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in c) c.imageSmoothingQuality = 'high';
+  const offX = item.offX*offXScale, offY = item.offY*offYScale;
+  c.save();
+  c.beginPath(); c.rect(0,0,W,H); c.clip(); // hard containment — nothing ever draws outside the image window
+  c.fillStyle = '#ffffff'; c.fillRect(0,0,W,H);
+  if (item.mode==='pattern') drawTiled(c, W, H, item.img, item.tilePct, item.repeat, item.zoom, offX, offY);
+  else drawSingle(c, W, H, item.img, item.singlePct, item.zoom, offX, offY);
+  drawLogo(c, W, H, item);
+  if (item.sticker.enabled){
+    if (item.sticker.mode==='text') drawStickerText(c, W, H, item.sticker);
+    else drawStickerImage(c, W, H, item.sticker);
+  }
+  c.restore();
+}
+
+function render(){
+  if (!getActiveImg()) { canvas.style.display='none'; return; }
+  canvas.style.display='block';
+  const wrapW = canvasWrap.clientWidth - 24, wrapH = canvasWrap.clientHeight - 24;
+  const aspect = APP.exportW/APP.exportH;
+  let cw, ch;
+  if (wrapW/wrapH > aspect){ ch = wrapH; cw = ch*aspect; } else { cw = wrapW; ch = cw/aspect; }
+  canvas.width = Math.round(cw); canvas.height = Math.round(ch);
+  canvas.style.width = Math.round(cw)+'px'; canvas.style.height = Math.round(ch)+'px';
+  renderTo(ctx, canvas.width, canvas.height, 1, 1);
+}
+
+// ═══════════════════════════ COLOUR PICKING FROM IMAGE (drag + live magnified preview) ═══════════════════════════
+let pickArtCanvas = null;
+function buildArtworkOnlyCanvas(){
+  const item = getActive();
+  if (!item || !item.img || !canvas.width || !canvas.height) return null;
+  const off = document.createElement('canvas');
+  off.width = canvas.width; off.height = canvas.height;
+  const offCtx = off.getContext('2d', { willReadFrequently: true });
+  offCtx.imageSmoothingEnabled = true;
+  offCtx.fillStyle = '#ffffff'; offCtx.fillRect(0,0,off.width,off.height);
+  if (item.mode==='pattern') drawTiled(offCtx, off.width, off.height, item.img, item.tilePct, item.repeat, item.zoom, item.offX, item.offY);
+  else drawSingle(offCtx, off.width, off.height, item.img, item.singlePct, item.zoom, item.offX, item.offY);
+  return off;
+}
+function samplePixelAt(clientX, clientY){
+  if (!pickArtCanvas) return null;
+  const rect = canvas.getBoundingClientRect();
+  const sx = Math.round((clientX-rect.left) * (pickArtCanvas.width/rect.width));
+  const sy = Math.round((clientY-rect.top) * (pickArtCanvas.height/rect.height));
+  if (sx<0||sy<0||sx>=pickArtCanvas.width||sy>=pickArtCanvas.height) return null;
+  try {
+    const px = pickArtCanvas.getContext('2d').getImageData(sx, sy, 1, 1).data;
+    return '#' + [px[0],px[1],px[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+  } catch(err){
+    console.error('Colour pick failed', err);
+    return null;
+  }
+}
+
+// ── Loupe (magnifier) preview ──
+const pickLoupe = document.getElementById('pickLoupe');
+const pickLoupeCanvas = document.getElementById('pickLoupeCanvas');
+const pickLoupeCtx = pickLoupeCanvas.getContext('2d');
+const pickLoupeSwatchRow = document.getElementById('pickLoupeSwatchRow');
+const pickLoupeSwatch = document.getElementById('pickLoupeSwatch');
+const pickLoupeHex = document.getElementById('pickLoupeHex');
+const LOUPE_SIZE = 96;
+const LOUPE_ZOOM = 6;
+const LOUPE_SRC = LOUPE_SIZE / LOUPE_ZOOM;
+const LOUPE_VERTICAL_OFFSET = 110;
+
+function updateLoupe(clientX, clientY){
+  if (!pickArtCanvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = pickArtCanvas.width/rect.width, scaleY = pickArtCanvas.height/rect.height;
+  const sx = (clientX-rect.left) * scaleX, sy = (clientY-rect.top) * scaleY;
+
+  pickLoupeCtx.imageSmoothingEnabled = false;
+  pickLoupeCtx.clearRect(0,0,LOUPE_SIZE,LOUPE_SIZE);
+  pickLoupeCtx.fillStyle = '#fff';
+  pickLoupeCtx.fillRect(0,0,LOUPE_SIZE,LOUPE_SIZE);
+  pickLoupeCtx.drawImage(
+    pickArtCanvas,
+    sx - LOUPE_SRC/2, sy - LOUPE_SRC/2, LOUPE_SRC, LOUPE_SRC,
+    0, 0, LOUPE_SIZE, LOUPE_SIZE
+  );
+
+  let loupeY = clientY - LOUPE_VERTICAL_OFFSET;
+  const minY = 70;
+  if (loupeY < minY) loupeY = clientY + 40;
+  pickLoupe.style.left = clientX + 'px';
+  pickLoupe.style.top = loupeY + 'px';
+  pickLoupe.style.display = 'block';
+
+  const hex = samplePixelAt(clientX, clientY);
+  if (hex){
+    pickLoupeSwatch.style.background = hex;
+    pickLoupeHex.textContent = hex.toUpperCase();
+    pickLoupeSwatchRow.style.display = 'flex';
+  }
+}
+function hideLoupe(){ pickLoupe.style.display='none'; pickLoupeSwatchRow.style.display='none'; }
+
+function applyPickedColor(hex){
+  const item = getActive();
+  const target = APP.pickingTarget;
+  if (item){
+    if (target==='bg'){ item.sticker.bg = hex; document.getElementById('bgCurrent').style.background = hex; }
+    else if (target==='text'){ item.sticker.textColor = hex; document.getElementById('textCurrent').style.background = hex; }
+  }
+  if (target){
+    document.querySelectorAll(`.clr-btn[data-target="${target}"]`).forEach(b=>b.classList.toggle('active', b.dataset.choice==='pick'));
+  }
+  APP.pickingTarget = null;
+  pickArtCanvas = null;
+  canvas.classList.remove('picking');
+  canvas.classList.remove('drag-target');
+  document.getElementById('pickBadge').classList.remove('show');
+  hideLoupe();
   render();
 }
 
-/* ────────────────────────────────────────────────────────────
-   Render
-──────────────────────────────────────────────────────────── */
-function render(){
-  emptyState.style.display = images.length ? 'none' : 'block';
-  filmstripWrap.style.display = images.length ? 'block' : 'none';
-  designBar.style.display = images.length ? 'flex' : 'none';
-  workspace.style.display = images.length ? 'block' : 'none';
+// ═══════════════════════════ PAN / ZOOM / DRAG-TO-POSITION / COLOUR-PICK ═══════════════════════════
+// What a drag on the canvas controls depends entirely on APP.target:
+//  'image'   → pans/zooms the artwork itself (per-image offX/offY/zoom)
+//  'logo'    → moves/resizes the logo overlay (per-image logo.x/y/scale)
+//  'sticker' → moves/resizes the sticker badge (per-image sticker.x/y/width/height)
+let dragging=false, dragStartX=0, dragStartY=0, dragOX=0, dragOY=0, pinchDist=null, pinchStartVal=null, pinchStartVal2=null;
+const activePointers = new Map();
 
-  renderPlatformRow();
-  renderFilmstrip();
-  if(images.length) renderWorkspace();
-}
+canvas.addEventListener('pointerdown', e=>{
+  const item = getActive();
+  if (!item) return;
+  canvas.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
 
-function renderFilmstrip(){
-  filmstrip.innerHTML = '';
-  images.forEach(img => {
-    const thumb = document.createElement('div');
-    thumb.className = 'film-thumb' + (img.id === activeId ? ' active' : '');
-    thumb.innerHTML = `
-      <img src="${img.dataUrl}">
-      ${img.isMain ? '<span class="film-star">★</span>' : ''}
-      <span class="film-remove">✕</span>
-      ${statusDot(img)}
-    `;
-    thumb.addEventListener('click', (e) => {
-      if(e.target.classList.contains('film-remove')){ removeImage(img.id); return; }
-      selectImage(img.id);
-    });
-    filmstrip.appendChild(thumb);
-  });
-  const addMore = document.createElement('div');
-  addMore.className = 'add-more-thumb';
-  addMore.textContent = '+';
-  addMore.title = 'Add more images';
-  addMore.addEventListener('click', () => fileInput.click());
-  if(images.length < 10) filmstrip.appendChild(addMore);
-}
-
-function statusDot(img){
-  if(img.loading) return '<span class="film-status loading"></span>';
-  if(img.error) return '<span class="film-status err"></span>';
-  if(Object.keys(img.results).length) return '<span class="film-status done"></span>';
-  return '';
-}
-
-function renderWorkspace(){
-  const img = images.find(i => i.id === activeId);
-  if(!img) return;
-  workspace.innerHTML = '';
-
-  const top = document.createElement('div');
-  top.className = 'workspace-top';
-  top.innerHTML = `
-    <img class="ws-preview" src="${img.dataUrl}">
-    <div class="ws-meta">
-      <div class="ws-name">${escapeHtml(img.name)}</div>
-      <div class="ws-dims">${img.width} × ${img.height}px</div>
-      <span class="main-pill ${img.isMain ? 'checked' : ''}" data-action="set-main">${img.isMain ? '★ Main design' : 'Set as main'}</span>
-    </div>
-  `;
-  top.querySelector('[data-action="set-main"]').addEventListener('click', () => setMain(img.id));
-  workspace.appendChild(top);
-
-  const designIdInput = document.createElement('input');
-  designIdInput.className = 'link-input'; designIdInput.type = 'text';
-  designIdInput.placeholder = 'Spoonflower Design ID (optional)';
-  designIdInput.value = img.designId;
-  designIdInput.addEventListener('input', e => { img.designId = e.target.value.trim(); });
-  // Re-render only on blur (not every keystroke) so the Fabric/Wallpaper
-  // links and Instagram footer refresh to match, without resetting focus
-  // or cursor position while the designer is still typing the ID. No AI
-  // regeneration involved either way, this is pure client-side templating.
-  designIdInput.addEventListener('change', () => { if(Object.keys(img.results).length) render(); });
-  workspace.appendChild(designIdInput);
-
-  if(selectedPlatforms.has('pinterest')){
-    const inp = document.createElement('input');
-    inp.className = 'link-input'; inp.type = 'url'; inp.placeholder = 'Pinterest link (optional)';
-    inp.value = img.links.pinterest;
-    inp.addEventListener('input', e => img.links.pinterest = e.target.value);
-    workspace.appendChild(inp);
+  if (APP.pickingTarget){
+    pickArtCanvas = buildArtworkOnlyCanvas();
+    canvas.classList.add('drag-target');
+    updateLoupe(e.clientX, e.clientY);
+    return;
   }
-  if(selectedPlatforms.has('instagram')){
-    const inp = document.createElement('input');
-    inp.className = 'link-input'; inp.type = 'url'; inp.placeholder = 'Instagram link in bio (optional)';
-    inp.value = img.links.instagram;
-    inp.addEventListener('input', e => img.links.instagram = e.target.value);
-    workspace.appendChild(inp);
+  if (activePointers.size === 1){
+    dragging=true; dragStartX=e.clientX; dragStartY=e.clientY;
+    const dt = dragTarget();
+    if (dt==='image'){ dragOX=item.offX; dragOY=item.offY; }
+    else if (dt==='logo'){ dragOX=item.logo.x; dragOY=item.logo.y; }
+    else if (dt==='sticker'){ dragOX=item.sticker.x; dragOY=item.sticker.y; }
+    canvas.classList.add('grabbing');
+  } else if (activePointers.size === 2){
+    dragging=false;
+    const pts = Array.from(activePointers.values());
+    pinchDist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    const dt2 = dragTarget();
+    if (dt2==='image'){ pinchStartVal = item.zoom; }
+    else if (dt2==='logo'){ pinchStartVal = item.logo.scale; }
+    else if (dt2==='sticker'){ pinchStartVal = item.sticker.width; pinchStartVal2 = item.sticker.height; }
   }
+});
+canvas.addEventListener('pointermove', e=>{
+  const item = getActive();
+  if (!item || !activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
 
-  const kwLabel = document.createElement('label');
-  kwLabel.className = 'keyword-label';
-  kwLabel.textContent = 'Manual keywords for this image (optional)';
-  workspace.appendChild(kwLabel);
-
-  const ta = document.createElement('textarea');
-  ta.className = 'keyword-input'; ta.style.marginBottom = '10px';
-  ta.placeholder = 'e.g. cottagecore, grandmillennial, block print revival';
-  ta.value = img.keywordOverride;
-  ta.addEventListener('input', e => img.keywordOverride = e.target.value);
-  workspace.appendChild(ta);
-
-  const genBtn = document.createElement('button');
-  genBtn.className = 'btn btn-primary';
-  genBtn.style.width = '100%'; genBtn.style.justifyContent = 'center';
-  genBtn.textContent = img.loading ? 'Generating…' : 'Generate';
-  genBtn.disabled = img.loading || selectedPlatforms.size === 0;
-  genBtn.addEventListener('click', () => generate(img.id));
-  workspace.appendChild(genBtn);
-
-  if(img.loading){
-    const lr = document.createElement('div');
-    lr.className = 'loading-row';
-    lr.innerHTML = `<div class="spinner"></div><span>Analyzing…</span>`;
-    workspace.appendChild(lr);
+  if (APP.pickingTarget){
+    updateLoupe(e.clientX, e.clientY);
+    return;
   }
-
-  if(img.error){
-    const eb = document.createElement('div');
-    eb.className = 'err-box';
-    eb.textContent = img.error;
-    workspace.appendChild(eb);
-  }
-
-  if(Object.keys(img.results).length){
-    const resultsBlock = document.createElement('div');
-    resultsBlock.className = 'results-block';
-    ['spoonflower','pinterest','instagram'].forEach(p => {
-      if(img.results[p]) resultsBlock.appendChild(renderPlatformResult(p, img.results[p], img.designId));
-    });
-    workspace.appendChild(resultsBlock);
-  }
-}
-
-// designId is passed in separately from `data` (rather than baked into
-// the stored generation result) because it's pure client-side templating,
-// not AI-generated content — editing it later shouldn't require
-// regenerating anything, it just changes what gets rendered here.
-function renderPlatformResult(platform, data, designId){
-  const wrap = document.createElement('div');
-  wrap.style.marginBottom = '14px';
-
-  const badge = document.createElement('div');
-  badge.className = 'platform-badge';
-  badge.textContent = platform;
-  wrap.appendChild(badge);
-
-  if(platform === 'spoonflower'){
-    wrap.appendChild(fieldBlock('Name', data.name));
-    wrap.appendChild(fieldBlock('Description', data.description, true));
-    wrap.appendChild(tagGroup('Shared tags (8) — same across every colorway', data.sharedTags));
-    wrap.appendChild(tagGroup('Colorway tags (5) — unique to this image', data.colorwayTags));
-    if(designId){
-      wrap.appendChild(fieldBlock('Fabric link', 'https://www.spoonflower.com/fabric/' + designId));
-      wrap.appendChild(fieldBlock('Wallpaper link', 'https://www.spoonflower.com/wallpaper/' + designId));
+  if (activePointers.size === 1 && dragging){
+    const dxPx = e.clientX-dragStartX, dyPx = e.clientY-dragStartY;
+    const dtMove = dragTarget();
+    if (dtMove==='image'){
+      item.offX = dragOX + dxPx;
+      item.offY = dragOY + dyPx;
+    } else if (dtMove==='logo'){
+      const dxPct = canvas.width ? (dxPx/canvas.width*100) : 0;
+      const dyPct = canvas.height ? (dyPx/canvas.height*100) : 0;
+      item.logo.x = clamp(dragOX + dxPct, 0, 100);
+      item.logo.y = clamp(dragOY + dyPct, 0, 100);
+    } else if (dtMove==='sticker'){
+      const dxPct = canvas.width ? (dxPx/canvas.width*100) : 0;
+      const dyPct = canvas.height ? (dyPx/canvas.height*100) : 0;
+      item.sticker.x = clamp(dragOX + dxPct, 0, 100);
+      item.sticker.y = clamp(dragOY + dyPct, 0, 100);
     }
-  } else if(platform === 'pinterest'){
-    wrap.appendChild(fieldBlock('Title', data.title));
-    wrap.appendChild(fieldBlock('Description', data.description, true));
-    wrap.appendChild(fieldBlock('Alt text', data.altText, true));
-    if(data.pinLink) wrap.appendChild(fieldBlock('Pin link', data.pinLink));
-  } else if(platform === 'instagram'){
-    const captionWithFooter = designId
-      ? (data.caption || '').trim() + '\n\nDesign ID: ' + designId
-      : data.caption;
-    wrap.appendChild(fieldBlock('Caption', captionWithFooter, true));
-    wrap.appendChild(tagGroup('Hashtags', (data.hashtags||[]).map(h => h.startsWith('#') ? h : '#'+h)));
-    wrap.appendChild(fieldBlock('Alt text', data.altText, true));
-    if(data.bioLink) wrap.appendChild(fieldBlock('Bio link', data.bioLink));
+    render();
+  } else if (activePointers.size === 2 && pinchDist){
+    const pts = Array.from(activePointers.values());
+    const dist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    const f = dist/pinchDist;
+    const dtPinch = dragTarget();
+    if (dtPinch==='image'){
+      item.zoom = clamp(pinchStartVal*f, 0.2, 8);
+    } else if (dtPinch==='logo'){
+      item.logo.scale = clamp(pinchStartVal*f, 2, 100);
+      document.getElementById('logoScale').value = item.logo.scale;
+      document.getElementById('logoScaleVal').textContent = Math.round(item.logo.scale)+'%';
+    } else if (dtPinch==='sticker'){
+      item.sticker.width = clamp(pinchStartVal*f, 10, 100);
+      item.sticker.height = clamp(pinchStartVal2*f, 4, 50);
+      document.getElementById('stkW').value = item.sticker.width;
+      document.getElementById('stkWVal').textContent = Math.round(item.sticker.width)+'%';
+      document.getElementById('stkH').value = item.sticker.height;
+      document.getElementById('stkHVal').textContent = Math.round(item.sticker.height)+'%';
+    }
+    render();
   }
-  return wrap;
+});
+function endPointer(e){
+  const item = getActive();
+  if (APP.pickingTarget && activePointers.has(e.pointerId)){
+    applyPickedColor(samplePixelAt(e.clientX, e.clientY) || (item ? item.sticker.bg : '#111111'));
+  }
+  activePointers.delete(e.pointerId);
+  if (activePointers.size < 2){ pinchDist = null; pinchStartVal=null; pinchStartVal2=null; }
+  if (activePointers.size === 0){ dragging=false; canvas.classList.remove('grabbing'); }
 }
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', e=>{
+  const item = getActive();
+  if (!item) return;
+  e.preventDefault();
+  const f = e.deltaY<0 ? 1.1 : 0.9;
+  const dtWheel = dragTarget();
+  if (dtWheel==='image'){
+    item.zoom = clamp(item.zoom*f, 0.2, 8);
+  } else if (dtWheel==='logo'){
+    item.logo.scale = clamp(item.logo.scale*f, 2, 100);
+    document.getElementById('logoScale').value = item.logo.scale;
+    document.getElementById('logoScaleVal').textContent = Math.round(item.logo.scale)+'%';
+  } else if (dtWheel==='sticker'){
+    item.sticker.width = clamp(item.sticker.width*f, 10, 100);
+    item.sticker.height = clamp(item.sticker.height*f, 4, 50);
+    document.getElementById('stkW').value = item.sticker.width;
+    document.getElementById('stkWVal').textContent = Math.round(item.sticker.width)+'%';
+    document.getElementById('stkH').value = item.sticker.height;
+    document.getElementById('stkHVal').textContent = Math.round(item.sticker.height)+'%';
+  }
+  render();
+}, {passive:false});
 
-function fieldBlock(label, value, multiline){
-  const div = document.createElement('div');
-  div.className = 'field-block';
-  const safeValue = (value || '').replace(/</g,'&lt;');
-  div.innerHTML = `
-    <div class="field-label"><span>${label}</span><button class="btn btn-ghost btn-sm">Copy</button></div>
-    ${multiline ? `<textarea class="field-value" rows="3">${safeValue}</textarea>` : `<input class="field-value" value="${safeValue}">`}
-  `;
-  const target = div.querySelector('.field-value');
-  div.querySelector('button').addEventListener('click', () => copyText(target.value, div.querySelector('button')));
-  return div;
-}
+window.addEventListener('resize', ()=>{ if (getActiveImg()) render(); });
 
-function tagGroup(label, tags){
-  tags = tags || [];
-  const selected = new Set(tags);
-  const div = document.createElement('div');
-  div.className = 'field-block';
-  const labelRow = document.createElement('div');
-  labelRow.className = 'tag-group-label';
-  const copyAllBtn = document.createElement('button');
-  copyAllBtn.className = 'btn btn-ghost btn-sm';
-  copyAllBtn.textContent = 'Copy all';
-  const copySelBtn = document.createElement('button');
-  copySelBtn.className = 'btn btn-ghost btn-sm';
-  copySelBtn.textContent = 'Copy selected';
-  copySelBtn.style.marginLeft = '4px';
-  const btnWrap = document.createElement('span');
-  btnWrap.appendChild(copyAllBtn); btnWrap.appendChild(copySelBtn);
-  labelRow.innerHTML = `<span>${label}</span>`;
-  labelRow.appendChild(btnWrap);
-  div.appendChild(labelRow);
-
-  const list = document.createElement('div');
-  list.className = 'tag-list';
-  tags.forEach(t => {
-    const chip = document.createElement('span');
-    chip.className = 'tag-chip';
-    chip.textContent = t;
-    chip.addEventListener('click', () => {
-      if(selected.has(t)){ selected.delete(t); chip.classList.add('unselected'); }
-      else { selected.add(t); chip.classList.remove('unselected'); }
-    });
-    list.appendChild(chip);
+// ═══════════════════════════ EXPORT (single or batch ZIP) ═══════════════════════════
+function renderImageBlob(item){
+  return new Promise(resolve=>{
+    const off = document.createElement('canvas');
+    off.width = APP.exportW; off.height = APP.exportH;
+    const offCtx = off.getContext('2d');
+    const previewW = canvas.width || APP.exportW, previewH = canvas.height || APP.exportH;
+    const scaleX = APP.exportW/previewW, scaleY = APP.exportH/previewH;
+    renderTo(offCtx, APP.exportW, APP.exportH, scaleX, scaleY, item);
+    const mime = APP.fmt==='png' ? 'image/png' : 'image/jpeg';
+    const quality = APP.fmt==='jpg' ? 0.95 : undefined;
+    off.toBlob(blob=>resolve(blob), mime, quality);
   });
-  div.appendChild(list);
-
-  copyAllBtn.addEventListener('click', () => copyText(tags.join(', '), copyAllBtn));
-  copySelBtn.addEventListener('click', () => copyText(Array.from(selected).join(', '), copySelBtn));
-
-  return div;
 }
-
-function copyText(text, btn){
-  navigator.clipboard.writeText((text||'').trim());
-  const orig = btn.textContent;
-  btn.textContent = 'Copied!';
-  setTimeout(() => { btn.textContent = orig; }, 1300);
+async function downloadSingleImage(i){
+  const item = APP.images[i];
+  if (!item) return;
+  const ext = APP.fmt==='png' ? 'png' : 'jpg';
+  const blob = await renderImageBlob(item);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download = (item.fileName||'post'+(i+1)) + '-' + APP.exportW + 'x' + APP.exportH + '.' + ext;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
+document.getElementById('downloadSelectedBtn').addEventListener('click', async ()=>{
+  if (!APP.images.length) return;
+  const btn = document.getElementById('downloadSelectedBtn');
+  const label = document.getElementById('downloadSelectedBtnLabel');
+  const origLabel = label.textContent;
+  btn.disabled = true;
+  label.textContent = 'Preparing…';
+  try { await downloadSingleImage(APP.activeIndex); }
+  finally { label.textContent = origLabel; btn.disabled = false; }
+});
+document.getElementById('downloadBtn').addEventListener('click', async ()=>{
+  if (!APP.images.length) return;
+  const btn = document.getElementById('downloadBtn');
+  const label = document.getElementById('downloadBtnLabel');
+  const origLabel = label.textContent;
+  btn.disabled = true;
 
-function escapeHtml(s){ return (s||'').replace(/</g,'&lt;'); }
+  if (APP.images.length === 1){
+    label.textContent = 'Preparing…';
+    await downloadSingleImage(0);
+  } else {
+    const ext = APP.fmt==='png' ? 'png' : 'jpg';
+    const zip = new JSZip();
+    for (let i=0;i<APP.images.length;i++){
+      label.textContent = `Rendering ${i+1} of ${APP.images.length}…`;
+      const item = APP.images[i];
+      const blob = await renderImageBlob(item);
+      zip.file((item.fileName||'post'+(i+1)) + '-' + APP.exportW + 'x' + APP.exportH + '.' + ext, blob);
+    }
+    label.textContent = 'Zipping…';
+    const zipBlob = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href=url; a.download = 'social-content-batch-' + APP.exportW + 'x' + APP.exportH + '.zip';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }
+  label.textContent = origLabel;
+  btn.disabled = false;
+});
 
-render();
+updateDimsBadge();
+enableDownload();
+
 </script>
+
 </body>
 </html>
