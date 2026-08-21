@@ -140,8 +140,11 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
 
 /* ── batch thumbnail strip ── */
 .ps-batch-bar{padding:8px 14px 6px;background:var(--white);border-bottom:1px solid var(--linen-3);position:relative;z-index:5;}
-.ps-batch-bar .batch-count{margin-bottom:5px;}
+.ps-batch-bar .batch-bar-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;}
+.ps-batch-bar .batch-count{margin-bottom:0;}
 .ps-batch-bar .batch-strip{padding:0;}
+.batch-clear-btn{flex-shrink:0;background:none;border:none;padding:2px 0;font-family:var(--font-ui);font-size:10.5px;color:#c07070;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.batch-clear-btn:hover{color:#a55555;}
 .batch-strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0 6px;}
 .batch-thumb{position:relative;flex-shrink:0;width:58px;height:58px;border-radius:7px;overflow:hidden;border:2px solid var(--linen-3);cursor:pointer;background:repeating-conic-gradient(#ddd 0% 25%,#fff 0% 50%) 0 0/10px 10px;transition:var(--t);}
 .batch-thumb.active{border-color:var(--forest);box-shadow:0 0 0 1px var(--forest);}
@@ -237,6 +240,12 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
       <button class="ps-seg-btn" data-target="logo" id="targetLogoBtn">Logo</button>
       <button class="ps-seg-btn" data-target="sticker" id="targetStickerBtn">Sticker</button>
     </div>
+    <div class="ps-sep" id="repeatSep" style="display:none;"></div>
+    <div class="ps-seg-group" id="repeatSeg" style="display:none;">
+      <button class="ps-seg-btn active" data-repeat="full">Full Drop</button>
+      <button class="ps-seg-btn" data-repeat="halfdrop">Half Drop</button>
+      <button class="ps-seg-btn" data-repeat="halfbrick">Half Brick</button>
+    </div>
     <div class="ps-sep"></div>
     <div class="ps-zoom-row" id="zoomRow">
       <button class="ps-z-btn ps-z-btn-icon" id="downloadSelectedBtn" disabled style="display:none;" title="Download Selected Image">
@@ -250,16 +259,11 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
     </div>
   </div>
   <div class="ps-batch-bar" id="batchBar" style="display:none;">
-    <p class="batch-count" id="batchCount" style="display:none;"></p>
-    <div class="batch-strip" id="batchStrip" style="display:none;"></div>
-  </div>
-  <div class="ps-ctrl-bar" id="repeatBar" style="display:none;">
-    <span class="ps-ctrl-label">Repeat</span>
-    <div class="ps-seg-group" id="repeatSeg">
-      <button class="ps-seg-btn active" data-repeat="full">Full Drop</button>
-      <button class="ps-seg-btn" data-repeat="halfdrop">Half Drop</button>
-      <button class="ps-seg-btn" data-repeat="halfbrick">Half Brick</button>
+    <div class="batch-bar-top">
+      <p class="batch-count" id="batchCount" style="display:none;"></p>
+      <button class="batch-clear-btn" id="clearAllBtn" style="display:none;">Remove All</button>
     </div>
+    <div class="batch-strip" id="batchStrip" style="display:none;"></div>
   </div>
 
   <div class="ps-canvas-wrap" id="canvasWrap">
@@ -269,7 +273,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A9186" stroke-width="1.3"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       </div>
       <h3>No artwork loaded</h3>
-      <p>Upload a pattern tile or a finished mockup below to start building your post.</p>
+      <p>Tap the + above to upload a pattern tile or a finished mockup and start building your post.</p>
     </div>
     <div class="dims-corner" id="dimsBadgeOverlay" style="display:none;"></div>
     <div class="pick-badge" id="pickBadge">Drag on the artwork to pick a colour</div>
@@ -278,15 +282,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
 </div>
 
 <div id="options">
-
-  <!-- ARTWORK -->
-  <div class="card">
-    <div class="kicker">Artwork</div>
-    <div class="upload-row">
-      <button class="btn-remove" id="artRemoveBtn">Remove All</button>
-    </div>
-    <p class="hint" id="artHint">Tap the + in the strip above to upload up to 10 pattern tiles or mockups. Each image keeps its own layout, logo and sticker settings — nothing is shared between them.</p>
-  </div>
 
   <!-- LAYOUT TAB -->
   <div class="tab-panel" id="panel-layout">
@@ -314,6 +309,10 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
       <input type="range" id="singleSlider" min="10" max="100" value="90">
       <span class="val" id="singleVal">90%</span>
     </div>
+    <button class="centre-btn" id="singleCentreBtn" style="margin-top:9px;">
+      <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1.5-3.5"/><polyline points="2,2 2,5.5 5.5,5.5"/></svg>
+      Centre Image
+    </button>
     <p class="hint" style="margin-top:10px;">Drag the image in the preview above to reposition it.</p>
   </div>
   </div>
@@ -514,7 +513,8 @@ const canvasWrap = document.getElementById('canvasWrap');
 const empty = document.getElementById('empty');
 const dimsBadgeOverlay = document.getElementById('dimsBadgeOverlay');
 const targetBar = document.getElementById('targetBar');
-const repeatBar = document.getElementById('repeatBar');
+const repeatSeg = document.getElementById('repeatSeg');
+const repeatSep = document.getElementById('repeatSep');
 const dragHint = document.getElementById('dragHint');
 const zoomRow = document.getElementById('zoomRow');
 
@@ -609,7 +609,9 @@ function updateTargetUI(){
     if (panel) panel.style.display = (t===APP.target) ? 'flex' : 'none';
   });
 
-  repeatBar.style.display = (APP.target==='layout' && item && item.mode==='pattern') ? 'flex' : 'none';
+  const showRepeat = !!(item && item.mode==='pattern' && APP.images.length>0);
+  repeatSeg.style.display = showRepeat ? 'flex' : 'none';
+  repeatSep.style.display = showRepeat ? 'block' : 'none';
   const hints = {
     layout:'Drag to pan the artwork · pinch or scroll to zoom',
     size:'Drag to pan the artwork · pinch or scroll to zoom',
@@ -665,14 +667,13 @@ function loadArtFiles(files){
 }
 function refreshArtUI(){
   const has = APP.images.length>0;
-  document.getElementById('artRemoveBtn').style.display = has ? '' : 'none';
-  document.getElementById('artHint').style.display = has ? 'none' : '';
+  document.getElementById('clearAllBtn').style.display = has ? 'inline-block' : 'none';
   empty.style.display = has ? 'none' : 'flex';
   canvas.style.display = has ? 'block' : 'none';
   targetBar.style.display = has ? 'flex' : 'none';
   dimsBadgeOverlay.style.display = has ? 'block' : 'none';
   dragHint.style.display = has ? 'block' : 'none';
-  if (!has) repeatBar.style.display='none';
+  if (!has){ repeatSeg.style.display='none'; repeatSep.style.display='none'; }
 
   const strip = document.getElementById('batchStrip');
   const countEl = document.getElementById('batchCount');
@@ -712,7 +713,7 @@ function removeImage(i){
   setActiveIndex(APP.activeIndex >= APP.images.length ? Math.max(0, APP.images.length-1) : APP.activeIndex);
   enableDownload();
 }
-document.getElementById('artRemoveBtn').addEventListener('click', () => {
+document.getElementById('clearAllBtn').addEventListener('click', () => {
   APP.images.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
   APP.images = []; APP.activeIndex = 0;
   refreshArtUI(); render(); enableDownload();
@@ -828,6 +829,11 @@ document.getElementById('logoOp').addEventListener('input', function(){
 document.getElementById('logoCentreBtn').addEventListener('click', ()=>{
   const item = getActive(); if (!item) return;
   item.logo.x = 88; item.logo.y = 88;
+  render();
+});
+document.getElementById('singleCentreBtn').addEventListener('click', ()=>{
+  const item = getActive(); if (!item) return;
+  item.offX = 0; item.offY = 0;
   render();
 });
 
