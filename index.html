@@ -1437,26 +1437,32 @@ function renderImageBlob(item){
     off.toBlob(blob=>resolve(blob), mime, quality);
   });
 }
-// Individual images go out through the native share sheet so the person can
-// tap "Save Image"/"Save to Photos" and it lands in their camera roll. If
-// sharing files isn't supported on this browser, fall back to a plain file
-// download (goes to Files/Downloads instead).
+// Individual images save directly — no share sheet. A plain anchor download
+// drops the file into Files (Downloads/On My iPad on iPadOS) with no extra
+// prompt. Only if that fails outright do we fall back to the native share
+// sheet as a last resort.
 async function shareOrDownloadImage(blob, filename){
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    return;
+  } catch(err){
+    console.warn('Direct download failed, falling back to share sheet', err);
+  }
   try {
     const file = new File([blob], filename, {type: blob.type});
     if (navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file], title: filename});
-      return;
     }
   } catch(err){
-    if (err && err.name === 'AbortError') return; // person cancelled the share sheet on purpose
-    console.warn('Share failed, falling back to direct download', err);
+    if (err && err.name === 'AbortError') return;
+    console.warn('Share fallback also failed', err);
   }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download = filename;
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 async function downloadSingleImage(i){
   const item = APP.images[i];
