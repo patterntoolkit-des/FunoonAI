@@ -1256,7 +1256,9 @@ function drawStickerImage(c, W, H, s){
   const nw=STICKER_ASSET.img.naturalWidth||1, nh=STICKER_ASSET.img.naturalHeight||1;
   const boxW = Math.max(1, W*s.width/100), boxH = Math.max(1, H*s.height/100);
   let finalW = boxW, finalH = finalW*nh/nw;
-  if (finalH > boxH){ finalH = boxH; finalW = finalH*nw/nh; }
+  // At full width (100%), width always wins and fully spans the canvas — the
+  // height box only constrains/shrinks the fit below that.
+  if (s.width < 100 && finalH > boxH){ finalH = boxH; finalW = finalH*nw/nh; }
   let dx = Math.round(W*s.x/100 - finalW/2), dy = Math.round(H*s.y/100 - finalH/2);
   dx = Math.min(Math.max(dx,0), Math.max(0,W-finalW));
   dy = Math.min(Math.max(dy,0), Math.max(0,H-finalH));
