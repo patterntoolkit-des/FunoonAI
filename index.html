@@ -309,11 +309,11 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
       <input type="range" id="singleSlider" min="10" max="100" value="90">
       <span class="val" id="singleVal">90%</span>
     </div>
-    <button class="centre-btn" id="singleCentreBtn" style="margin-top:9px;">
+    <button class="centre-btn" id="singleCentreBtn" style="margin-top:9px;" title="Also resets any pinch-zoom back to 1×">
       <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1.5-3.5"/><polyline points="2,2 2,5.5 5.5,5.5"/></svg>
-      Centre Image
+      Centre & Reset Zoom
     </button>
-    <p class="hint" style="margin-top:10px;">Drag the image in the preview above to reposition it.</p>
+    <p class="hint" style="margin-top:10px;">Drag to reposition, or pinch/scroll to zoom, on the preview above. Size % is relative to your current zoom level.</p>
   </div>
   </div>
 
@@ -833,7 +833,7 @@ document.getElementById('logoCentreBtn').addEventListener('click', ()=>{
 });
 document.getElementById('singleCentreBtn').addEventListener('click', ()=>{
   const item = getActive(); if (!item) return;
-  item.offX = 0; item.offY = 0;
+  item.offX = 0; item.offY = 0; item.zoom = 1;
   render();
 });
 
