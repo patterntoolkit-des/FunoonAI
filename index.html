@@ -56,9 +56,12 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
 .ps-z-btn-primary:disabled{background:var(--navy);border-color:var(--navy);opacity:.4;}
 .ps-z-btn-primary:disabled:hover{background:var(--navy);border-color:var(--navy);color:var(--white);}
 
-.ps-canvas-wrap{position:relative;height:56vh;min-height:320px;max-height:640px;overflow:hidden;background:var(--linen-2);display:flex;align-items:center;justify-content:center;}
+.ps-canvas-wrap{position:relative;height:56vh;min-height:220px;max-height:85vh;overflow:hidden;background:var(--linen-2);display:flex;align-items:center;justify-content:center;}
 .dims-corner{position:absolute;top:8px;right:8px;background:rgba(25,34,49,.5);color:#fff;font-size:9.5px;font-weight:400;padding:3px 8px;border-radius:10px;pointer-events:none;letter-spacing:.2px;font-family:var(--font-ui);z-index:4;}
-.drag-hint{flex-shrink:0;text-align:center;font-size:10.5px;color:#8A9186;font-weight:300;padding:5px 10px;background:var(--white);border-bottom:1px solid var(--linen-3);letter-spacing:.1px;}
+.drag-hint{flex-shrink:0;text-align:center;font-size:10.5px;color:#8A9186;font-weight:300;padding:9px 10px 6px;background:var(--white);border-bottom:1px solid var(--linen-3);letter-spacing:.1px;position:relative;cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none;}
+.drag-hint::before{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);width:34px;height:4px;border-radius:2px;background:var(--linen-3);transition:var(--t);}
+.drag-hint:hover::before,.drag-hint.resizing::before{background:var(--forest);}
+.drag-hint.resizing{background:var(--linen-2);}
 .ps-seg-btn:disabled{opacity:.35;cursor:not-allowed;}
 .compact-note{font-size:11px;color:#8A9186;font-weight:300;line-height:1.5;}
 .tab-panel{display:flex;flex-direction:column;gap:12px;}
@@ -280,13 +283,9 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
   <div class="card">
     <div class="kicker">Artwork</div>
     <div class="upload-row">
-      <button class="btn-primary" id="artBtn">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V3M5 6l3-3 3 3M3 13h10"/></svg>
-        <span id="artBtnLabel">Upload Tiles / Mockups</span>
-      </button>
       <button class="btn-remove" id="artRemoveBtn">Remove All</button>
     </div>
-    <p class="hint" id="artHint">Upload up to 10 pattern tiles or mockups. Each image keeps its own layout, logo and sticker settings — nothing is shared between them.</p>
+    <p class="hint" id="artHint">Tap the + in the strip above to upload up to 10 pattern tiles or mockups. Each image keeps its own layout, logo and sticker settings — nothing is shared between them.</p>
   </div>
 
   <!-- LAYOUT TAB -->
@@ -636,7 +635,6 @@ document.querySelectorAll('#targetSeg .ps-seg-btn').forEach(b=>{
 // ═══════════════════════════ ARTWORK UPLOAD (BATCH) ═══════════════════════════
 const MAX_IMAGES = 10;
 const artInput = document.getElementById('artInput');
-document.getElementById('artBtn').addEventListener('click', () => artInput.click());
 artInput.addEventListener('change', e => {
   const files = Array.from(e.target.files || []); artInput.value='';
   if (!files.length) return;
@@ -667,7 +665,6 @@ function loadArtFiles(files){
 }
 function refreshArtUI(){
   const has = APP.images.length>0;
-  document.getElementById('artBtnLabel').textContent = has ? 'Add More Images' : 'Upload Tiles / Mockups';
   document.getElementById('artRemoveBtn').style.display = has ? '' : 'none';
   document.getElementById('artHint').style.display = has ? 'none' : '';
   empty.style.display = has ? 'none' : 'flex';
@@ -675,17 +672,19 @@ function refreshArtUI(){
   targetBar.style.display = has ? 'flex' : 'none';
   dimsBadgeOverlay.style.display = has ? 'block' : 'none';
   dragHint.style.display = has ? 'block' : 'none';
+  if (!has) repeatBar.style.display='none';
 
   const strip = document.getElementById('batchStrip');
   const countEl = document.getElementById('batchCount');
   const batchBar = document.getElementById('batchBar');
-  if (!has){
-    strip.style.display='none'; countEl.style.display='none'; batchBar.style.display='none';
-    strip.innerHTML=''; repeatBar.style.display='none'; return;
-  }
   batchBar.style.display='block';
-  strip.style.display='flex'; countEl.style.display='block';
-  countEl.textContent = APP.images.length + ' of ' + MAX_IMAGES + ' images — tap to select';
+  strip.style.display='flex';
+  if (has){
+    countEl.style.display='block';
+    countEl.textContent = APP.images.length + ' of ' + MAX_IMAGES + ' images — tap to select';
+  } else {
+    countEl.style.display='none';
+  }
   strip.innerHTML='';
   APP.images.forEach((item, i) => {
     const box = document.createElement('div');
@@ -1099,6 +1098,44 @@ function render(){
   renderTo(ctx, canvas.width, canvas.height, 1, 1);
 }
 
+// ═══════════════════════════ DRAG-TO-RESIZE PREVIEW HEIGHT ═══════════════════════════
+// Dragging the hint bar under the canvas grows/shrinks the preview area.
+// render() above always fits the artwork completely inside the new height
+// (letterboxed, never cropped), so shrinking the window never cuts the image off.
+(function(){
+  let dragging = false, startY = 0, startH = 0;
+  function clampH(h){
+    const minH = 220;
+    const maxH = Math.round(window.innerHeight * 0.85);
+    return Math.max(minH, Math.min(maxH, h));
+  }
+  function onDown(e){
+    dragging = true;
+    startY = e.clientY;
+    startH = canvasWrap.getBoundingClientRect().height;
+    dragHint.classList.add('resizing');
+    try { dragHint.setPointerCapture(e.pointerId); } catch(_){}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if (!dragging) return;
+    const dy = e.clientY - startY;
+    canvasWrap.style.height = clampH(startH + dy) + 'px';
+    render();
+    e.preventDefault();
+  }
+  function onUp(e){
+    if (!dragging) return;
+    dragging = false;
+    dragHint.classList.remove('resizing');
+    try { dragHint.releasePointerCapture(e.pointerId); } catch(_){}
+  }
+  dragHint.addEventListener('pointerdown', onDown);
+  dragHint.addEventListener('pointermove', onMove);
+  dragHint.addEventListener('pointerup', onUp);
+  dragHint.addEventListener('pointercancel', onUp);
+})();
+
 // ═══════════════════════════ COLOUR PICKING FROM IMAGE (drag + live magnified preview) ═══════════════════════════
 let pickArtCanvas = null;
 function buildArtworkOnlyCanvas(){
@@ -1381,6 +1418,7 @@ document.getElementById('downloadBtn').addEventListener('click', async ()=>{
 
 updateDimsBadge();
 enableDownload();
+refreshArtUI();
 
 </script>
 
