@@ -48,6 +48,13 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
 .ps-zoom-row{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0;}
 .ps-z-btn{height:26px;padding:0 9px;border:1px solid var(--linen-3);background:var(--white);border-radius:6px;font-size:11px;color:var(--navy);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--t);font-family:var(--font-ui);}
 .ps-z-btn:hover{border-color:var(--forest);color:var(--forest);}
+.ps-z-btn-icon{display:flex;align-items:center;gap:5px;}
+.ps-z-btn-icon:disabled{opacity:.4;cursor:not-allowed;}
+.ps-z-btn-icon:disabled:hover{border-color:var(--linen-3);color:var(--navy);}
+.ps-z-btn-primary{background:var(--navy);border-color:var(--navy);color:var(--white);}
+.ps-z-btn-primary:hover{background:var(--navy-3);border-color:var(--navy-3);color:var(--white);}
+.ps-z-btn-primary:disabled{background:var(--navy);border-color:var(--navy);opacity:.4;}
+.ps-z-btn-primary:disabled:hover{background:var(--navy);border-color:var(--navy);color:var(--white);}
 
 .ps-canvas-wrap{position:relative;height:56vh;min-height:320px;max-height:640px;overflow:hidden;background:var(--linen-2);display:flex;align-items:center;justify-content:center;}
 .dims-corner{position:absolute;top:8px;right:8px;background:rgba(25,34,49,.5);color:#fff;font-size:9.5px;font-weight:400;padding:3px 8px;border-radius:10px;pointer-events:none;letter-spacing:.2px;font-family:var(--font-ui);z-index:4;}
@@ -129,6 +136,9 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
 .export-btn-secondary:hover:not(:disabled){background:var(--linen-2);border-color:var(--forest);color:var(--forest);}
 
 /* ── batch thumbnail strip ── */
+.ps-batch-bar{padding:8px 14px 6px;background:var(--white);border-bottom:1px solid var(--linen-3);position:relative;z-index:5;}
+.ps-batch-bar .batch-count{margin-bottom:5px;}
+.ps-batch-bar .batch-strip{padding:0;}
 .batch-strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0 6px;}
 .batch-thumb{position:relative;flex-shrink:0;width:58px;height:58px;border-radius:7px;overflow:hidden;border:2px solid var(--linen-3);cursor:pointer;background:repeating-conic-gradient(#ddd 0% 25%,#fff 0% 50%) 0 0/10px 10px;transition:var(--t);}
 .batch-thumb.active{border-color:var(--forest);box-shadow:0 0 0 1px var(--forest);}
@@ -226,9 +236,19 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
     </div>
     <div class="ps-sep"></div>
     <div class="ps-zoom-row" id="zoomRow">
-      <button class="ps-z-btn" id="zFitBtn">Fit</button>
-      <button class="ps-z-btn" id="z1to1Btn">1:1</button>
+      <button class="ps-z-btn ps-z-btn-icon" id="downloadSelectedBtn" disabled style="display:none;" title="Download Selected Image">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
+        <span id="downloadSelectedBtnLabel">Selected</span>
+      </button>
+      <button class="ps-z-btn ps-z-btn-icon ps-z-btn-primary" id="downloadBtn" disabled title="Download">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
+        <span id="downloadBtnLabel">Download</span>
+      </button>
     </div>
+  </div>
+  <div class="ps-batch-bar" id="batchBar" style="display:none;">
+    <p class="batch-count" id="batchCount" style="display:none;"></p>
+    <div class="batch-strip" id="batchStrip" style="display:none;"></div>
   </div>
   <div class="ps-ctrl-bar" id="repeatBar" style="display:none;">
     <span class="ps-ctrl-label">Repeat</span>
@@ -267,8 +287,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
       <button class="btn-remove" id="artRemoveBtn">Remove All</button>
     </div>
     <p class="hint" id="artHint">Upload up to 10 pattern tiles or mockups. Each image keeps its own layout, logo and sticker settings — nothing is shared between them.</p>
-    <p class="batch-count" id="batchCount" style="display:none;"></p>
-    <div class="batch-strip" id="batchStrip" style="display:none;"></div>
   </div>
 
   <!-- LAYOUT TAB -->
@@ -430,16 +448,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
   </div>
   </div>
 
-  <button class="export-btn export-btn-secondary" id="downloadSelectedBtn" disabled style="display:none;">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
-    <span id="downloadSelectedBtnLabel">Download Selected Image</span>
-  </button>
-
-  <button class="export-btn" id="downloadBtn" disabled>
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
-    <span id="downloadBtnLabel">Download Image</span>
-  </button>
-
 </div>
 
 <!-- Live colour-pick loupe (magnifier preview shown while dragging on the artwork) -->
@@ -517,7 +525,7 @@ function updateDimsBadge(){
 function enableDownload(){
   const n = APP.images.length;
   document.getElementById('downloadBtn').disabled = n===0;
-  document.getElementById('downloadBtnLabel').textContent = n>1 ? `Download All (${n}) as ZIP` : 'Download Image';
+  document.getElementById('downloadBtnLabel').textContent = n>1 ? `All (${n})` : 'Download';
   const selBtn = document.getElementById('downloadSelectedBtn');
   if (n>1){ selBtn.style.display = 'flex'; selBtn.disabled = false; }
   else { selBtn.style.display = 'none'; }
@@ -603,7 +611,6 @@ function updateTargetUI(){
   });
 
   repeatBar.style.display = (APP.target==='layout' && item && item.mode==='pattern') ? 'flex' : 'none';
-  zoomRow.style.display = dragTarget()==='image' ? 'flex' : 'none';
   const hints = {
     layout:'Drag to pan the artwork · pinch or scroll to zoom',
     size:'Drag to pan the artwork · pinch or scroll to zoom',
@@ -671,10 +678,12 @@ function refreshArtUI(){
 
   const strip = document.getElementById('batchStrip');
   const countEl = document.getElementById('batchCount');
+  const batchBar = document.getElementById('batchBar');
   if (!has){
-    strip.style.display='none'; countEl.style.display='none';
+    strip.style.display='none'; countEl.style.display='none'; batchBar.style.display='none';
     strip.innerHTML=''; repeatBar.style.display='none'; return;
   }
+  batchBar.style.display='block';
   strip.style.display='flex'; countEl.style.display='block';
   countEl.textContent = APP.images.length + ' of ' + MAX_IMAGES + ' images — tap to select';
   strip.innerHTML='';
@@ -761,20 +770,6 @@ function readCustomSize(){
 }
 document.getElementById('cw').addEventListener('input', readCustomSize);
 document.getElementById('ch').addEventListener('input', readCustomSize);
-
-// ═══════════════════════════ ZOOM CONTROLS (image target only) ═══════════════════════════
-document.getElementById('zFitBtn').addEventListener('click', ()=>{
-  const item = getActive(); if (!item) return;
-  item.zoom=1; item.offX=0; item.offY=0; render();
-});
-document.getElementById('z1to1Btn').addEventListener('click', ()=>{
-  const item = getActive(); if (!item || !item.img) return;
-  if (item.mode==='pattern'){
-    const baseTileW = Math.max(4, Math.round(canvas.width * item.tilePct/100));
-    item.zoom = item.img.naturalWidth / baseTileW;
-  } else { item.zoom = 1; }
-  render();
-});
 
 // ═══════════════════════════ LOGO ASSET (uploaded once, shared) ═══════════════════════════
 const logoInput = document.getElementById('logoInput');
