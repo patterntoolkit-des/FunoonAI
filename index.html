@@ -239,7 +239,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
     <span class="ps-ctrl-label">Editing</span>
     <div class="ps-seg-group" id="targetSeg">
       <button class="ps-seg-btn active" data-target="layout">Layout</button>
-      <button class="ps-seg-btn" data-target="size">Size</button>
       <button class="ps-seg-btn" data-target="logo" id="targetLogoBtn">Logo</button>
       <button class="ps-seg-btn" data-target="sticker" id="targetStickerBtn">Sticker</button>
     </div>
@@ -251,6 +250,12 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
     </div>
     <div class="ps-sep"></div>
     <div class="ps-zoom-row" id="zoomRow">
+      <button class="ps-z-btn ps-z-btn-icon" id="undoBtn" disabled title="Undo">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8H13a3 3 0 0 1 0 6H9"/><path d="M7 5L4 8l3 3"/></svg>
+      </button>
+      <button class="ps-z-btn ps-z-btn-icon" id="redoBtn" disabled title="Redo">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8H3a3 3 0 0 0 0 6H7"/><path d="M9 5l3 3-3 3"/></svg>
+      </button>
       <button class="ps-z-btn ps-z-btn-icon" id="downloadSelectedBtn" disabled style="display:none;" title="Save Selected Image to Photos">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1v9M5 8l3 3 3-3M2 14h12"/></svg>
         <span id="downloadSelectedBtnLabel">Save Selected</span>
@@ -327,10 +332,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
     </button>
     <p class="hint" id="singleFitHint" style="margin-top:10px;">Drag to reposition, or pinch/scroll to zoom, on the preview above. Size % is relative to your current zoom level.</p>
   </div>
-  </div>
 
-  <!-- SIZE TAB -->
-  <div class="tab-panel" id="panel-size" style="display:none;">
   <div class="card">
     <div class="kicker">Choose a Size</div>
     <div class="chip-row" id="sizeChips">
@@ -345,14 +347,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
       <span class="cw-x">×</span>
       <span class="cw-lbl">H</span><input type="number" id="ch" value="1200" min="100" max="6000">
       <span class="cw-px">px</span>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="kicker">Format</div>
-    <div class="fmt-row">
-      <button class="fmt-btn active" id="fmtPng">PNG</button>
-      <button class="fmt-btn" id="fmtJpg">JPG</button>
     </div>
   </div>
   </div>
@@ -372,12 +366,14 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
       </button>
       <button class="btn-remove" id="logoRemoveBtn">Remove</button>
     </div>
-    <p class="hint" id="logoHint">Upload once — it's shared by every image. Switch it on/off per image above; when on, tap "Logo" over the preview and drag to reposition (pinch or scroll to resize).</p>
+    <p class="hint" id="logoHint">Upload once — it's shared by every image. Switch it on/off per image above, then use the position and size controls below to place it.</p>
     <div class="overlay-controls" id="logoControls">
       <div class="thumb-box"><canvas class="thumb-cv" id="logoThumb"></canvas></div>
-      <p class="compact-note">On for this image. Tap "Logo" above the preview, then drag on the artwork to move it.</p>
+      <p class="compact-note">On for this image. The pattern preview above always pans/zooms the artwork — use these controls to place the logo.</p>
       <div class="slider-row"><span class="lbl">Scale</span><input type="range" id="logoScale" min="2" max="100" value="20"><span class="val" id="logoScaleVal">20%</span></div>
       <div class="slider-row"><span class="lbl">Opacity</span><input type="range" id="logoOp" min="10" max="100" value="100"><span class="val" id="logoOpVal">100%</span></div>
+      <div class="slider-row"><span class="lbl">Position X</span><input type="range" id="logoX" min="0" max="100" value="88"><span class="val" id="logoXVal">88%</span></div>
+      <div class="slider-row"><span class="lbl">Position Y</span><input type="range" id="logoY" min="0" max="100" value="88"><span class="val" id="logoYVal">88%</span></div>
       <button class="centre-btn" id="logoCentreBtn">
         <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1.5-3.5"/><polyline points="2,2 2,5.5 5.5,5.5"/></svg>
         Centre Logo
@@ -446,10 +442,12 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--fore
         <div class="thumb-box" id="stkImgThumbRow" style="display:none;"><canvas class="thumb-cv" id="stkImgThumb"></canvas></div>
       </div>
 
-      <p class="compact-note" style="margin-top:10px;">Tap "Sticker" above the preview, then drag on the artwork to move it.</p>
+      <p class="compact-note" style="margin-top:10px;">The pattern preview above always pans/zooms the artwork — use these controls to place the badge.</p>
       <div class="slider-row" style="margin-top:2px;"><span class="lbl">Width</span><input type="range" id="stkW" min="10" max="100" value="100"><span class="val" id="stkWVal">100%</span></div>
       <div class="slider-row"><span class="lbl">Height</span><input type="range" id="stkH" min="4" max="50" value="14"><span class="val" id="stkHVal">14%</span></div>
       <div class="slider-row"><span class="lbl">Opacity</span><input type="range" id="stkOp" min="10" max="100" value="100"><span class="val" id="stkOpVal">100%</span></div>
+      <div class="slider-row"><span class="lbl">Position X</span><input type="range" id="stkX" min="0" max="100" value="50"><span class="val" id="stkXVal">50%</span></div>
+      <div class="slider-row"><span class="lbl">Position Y</span><input type="range" id="stkY" min="0" max="100" value="93"><span class="val" id="stkYVal">93%</span></div>
       <button class="centre-btn" id="stkCentreBtn" style="margin-top:9px;">
         <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a5 5 0 1 0 1.5-3.5"/><polyline points="2,2 2,5.5 5.5,5.5"/></svg>
         Centre Badge
@@ -545,6 +543,91 @@ function enableDownload(){
   else { selBtn.style.display = 'none'; }
 }
 
+// ═══════════════════════════ UNDO / REDO ═══════════════════════════
+// A history stack of full, self-contained snapshots. Each snapshot captures
+// every per-image setting (layout, pan/zoom, logo, sticker), the shared
+// export size, and which logo/sticker bitmaps are currently uploaded — so
+// undo/redo can step through everything the person does, including adding
+// or removing images and uploading/removing the logo or sticker image.
+let HISTORY = [];
+let HIST_INDEX = -1;
+let HIST_SUSPEND = false;
+const HIST_LIMIT = 60;
+
+function cloneItemSettings(it){
+  return JSON.parse(JSON.stringify({
+    mode: it.mode, repeat: it.repeat, tilePct: it.tilePct, singlePct: it.singlePct, singleFit: it.singleFit,
+    zoom: it.zoom, offX: it.offX, offY: it.offY,
+    logo: it.logo, sticker: it.sticker
+  }));
+}
+function snapshotState(){
+  return {
+    activeIndex: APP.activeIndex,
+    exportW: APP.exportW, exportH: APP.exportH, platform: APP.platform,
+    logoAsset: LOGO_ASSET.img, stickerAsset: STICKER_ASSET.img,
+    images: APP.images.map(it => ({ img: it.img, fileName: it.fileName, url: it.url, s: cloneItemSettings(it) }))
+  };
+}
+function syncSizeUI(){
+  const chips = document.querySelectorAll('#sizeChips .sh-chip');
+  let matched = false;
+  chips.forEach(c=>{
+    if (c.dataset.custom) return;
+    const isMatch = parseInt(c.dataset.w)===APP.exportW && parseInt(c.dataset.h)===APP.exportH && c.dataset.platform===APP.platform;
+    c.classList.toggle('active', isMatch);
+    if (isMatch) matched = true;
+  });
+  const customChip = document.querySelector('#sizeChips .sh-chip[data-custom]');
+  if (customChip) customChip.classList.toggle('active', !matched);
+  document.getElementById('customRow').style.display = matched ? 'none' : 'flex';
+  if (!matched){
+    document.getElementById('cw').value = APP.exportW;
+    document.getElementById('ch').value = APP.exportH;
+  }
+}
+function applySnapshot(snap){
+  HIST_SUSPEND = true;
+  APP.exportW = snap.exportW; APP.exportH = snap.exportH; APP.platform = snap.platform;
+  LOGO_ASSET.img = snap.logoAsset; STICKER_ASSET.img = snap.stickerAsset;
+  APP.images = snap.images.map(x => Object.assign({img:x.img, fileName:x.fileName, url:x.url}, JSON.parse(JSON.stringify(x.s))));
+  APP.activeIndex = APP.images.length ? clamp(snap.activeIndex, 0, APP.images.length-1) : 0;
+  refreshLogoAssetUI();
+  refreshStickerAssetUI();
+  refreshArtUI();
+  syncSizeUI();
+  updateDimsBadge();
+  enableDownload();
+  if (APP.images.length) setActiveIndex(APP.activeIndex); else render();
+  HIST_SUSPEND = false;
+}
+function pushHistory(){
+  if (HIST_SUSPEND) return;
+  HISTORY = HISTORY.slice(0, HIST_INDEX+1);
+  HISTORY.push(snapshotState());
+  HIST_INDEX = HISTORY.length-1;
+  if (HISTORY.length > HIST_LIMIT){ HISTORY.shift(); HIST_INDEX--; }
+  updateUndoRedoBtns();
+}
+function undo(){
+  if (HIST_INDEX<=0) return;
+  HIST_INDEX--;
+  applySnapshot(HISTORY[HIST_INDEX]);
+  updateUndoRedoBtns();
+}
+function redo(){
+  if (HIST_INDEX>=HISTORY.length-1) return;
+  HIST_INDEX++;
+  applySnapshot(HISTORY[HIST_INDEX]);
+  updateUndoRedoBtns();
+}
+function updateUndoRedoBtns(){
+  document.getElementById('undoBtn').disabled = HIST_INDEX<=0;
+  document.getElementById('redoBtn').disabled = HIST_INDEX>=HISTORY.length-1;
+}
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('redoBtn').addEventListener('click', redo);
+
 // ═══════════════════════════ SWITCHING THE ACTIVE IMAGE ═══════════════════════════
 // Every control on screen is re-synced from the newly active image's own
 // stored settings — no bleed-through from whichever image was open before.
@@ -587,6 +670,10 @@ function syncActiveUI(){
   document.getElementById('logoScaleVal').textContent = item.logo.scale+'%';
   document.getElementById('logoOp').value = item.logo.opacity;
   document.getElementById('logoOpVal').textContent = item.logo.opacity+'%';
+  document.getElementById('logoX').value = item.logo.x;
+  document.getElementById('logoXVal').textContent = Math.round(item.logo.x)+'%';
+  document.getElementById('logoY').value = item.logo.y;
+  document.getElementById('logoYVal').textContent = Math.round(item.logo.y)+'%';
 
   // Sticker
   const stickerTog = document.getElementById('stickerTog');
@@ -605,19 +692,25 @@ function syncActiveUI(){
   document.getElementById('stkHVal').textContent = item.sticker.height+'%';
   document.getElementById('stkOp').value = item.sticker.opacity;
   document.getElementById('stkOpVal').textContent = item.sticker.opacity+'%';
+  document.getElementById('stkX').value = item.sticker.x;
+  document.getElementById('stkXVal').textContent = Math.round(item.sticker.x)+'%';
+  document.getElementById('stkY').value = item.sticker.y;
+  document.getElementById('stkYVal').textContent = Math.round(item.sticker.y)+'%';
   syncPresetActive();
 
   updateTargetUI();
   render();
 }
 
-// Dragging on the canvas always follows the active tab: Layout and Size
-// both pan/zoom the base image; Logo and Sticker move/resize themselves.
+// Dragging, pinching, and scrolling on the canvas always pans/zooms the
+// pattern artwork itself — no matter which tab (Layout/Logo/Sticker) is
+// active. Logo and sticker placement is handled entirely by the position
+// sliders in their own tabs instead.
 function dragTarget(){
-  return (APP.target==='logo' || APP.target==='sticker') ? APP.target : 'image';
+  return 'image';
 }
 
-const TAB_PANELS = ['layout','size','logo','sticker'];
+const TAB_PANELS = ['layout','logo','sticker'];
 function updateTargetUI(){
   const item = getActive();
   document.querySelectorAll('#targetSeg .ps-seg-btn').forEach(b=> b.classList.toggle('active', b.dataset.target===APP.target));
@@ -634,9 +727,8 @@ function updateTargetUI(){
   repeatSep.style.display = showRepeat ? 'block' : 'none';
   const hints = {
     layout:'Drag to pan the artwork · pinch or scroll to zoom',
-    size:'Drag to pan the artwork · pinch or scroll to zoom',
-    logo:'Drag the logo to move it · pinch or scroll to resize',
-    sticker:'Drag the sticker to move it · pinch or scroll to resize'
+    logo:'Drag to pan the artwork · pinch or scroll to zoom · position the logo below',
+    sticker:'Drag to pan the artwork · pinch or scroll to zoom · position the badge below'
   };
   dragHint.textContent = hints[APP.target] || '';
 }
@@ -680,6 +772,7 @@ function loadArtFiles(files){
         refreshArtUI();
         setActiveIndex(APP.images.length-1);
         enableDownload();
+        pushHistory();
       }
     };
     img.src = url;
@@ -733,11 +826,13 @@ function removeImage(i){
   refreshArtUI();
   setActiveIndex(APP.activeIndex >= APP.images.length ? Math.max(0, APP.images.length-1) : APP.activeIndex);
   enableDownload();
+  pushHistory();
 }
 document.getElementById('clearAllBtn').addEventListener('click', () => {
   APP.images.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
   APP.images = []; APP.activeIndex = 0;
   refreshArtUI(); render(); enableDownload();
+  pushHistory();
 });
 
 // ═══════════════════════════ APPLY TO ALL (one-time copy from active image) ═══════════════════════════
@@ -763,6 +858,7 @@ document.getElementById('applyAllBtn').addEventListener('click', () => {
   });
   refreshArtUI();
   syncActiveUI();
+  pushHistory();
 });
 
 // ═══════════════════════════ MODE / REPEAT (per active image) ═══════════════════════════
@@ -771,12 +867,14 @@ document.querySelectorAll('#modeSeg .mode-btn').forEach(b=>{
     const item = getActive(); if (!item) return;
     item.mode = b.dataset.mode;
     syncActiveUI();
+    pushHistory();
   });
 });
 function setRepeat(val){
   const item = getActive(); if (!item) return;
   item.repeat = val;
   syncActiveUI();
+  pushHistory();
 }
 document.querySelectorAll('#repeatSeg .ps-seg-btn').forEach(b=> b.addEventListener('click', ()=> setRepeat(b.dataset.repeat)));
 
@@ -786,17 +884,20 @@ document.getElementById('tileSlider').addEventListener('input', function(){
   document.getElementById('tileVal').textContent = this.value+'%';
   render();
 });
+document.getElementById('tileSlider').addEventListener('change', pushHistory);
 document.getElementById('singleSlider').addEventListener('input', function(){
   const item = getActive(); if (!item) return;
   item.singlePct = +this.value;
   document.getElementById('singleVal').textContent = this.value+'%';
   render();
 });
+document.getElementById('singleSlider').addEventListener('change', pushHistory);
 document.getElementById('singleFitTog').addEventListener('click', ()=>{
   const item = getActive(); if (!item) return;
   item.singleFit = item.singleFit==='cover' ? 'contain' : 'cover';
   item.zoom = 1; item.offX = 0; item.offY = 0;
   syncActiveUI();
+  pushHistory();
 });
 
 // ═══════════════════════════ CANVAS SIZE (shared export size) ═══════════════════════════
@@ -815,6 +916,7 @@ document.querySelectorAll('#sizeChips .sh-chip').forEach(chip=>{
       APP.exportH = parseInt(chip.dataset.h);
       updateDimsBadge(); render();
     }
+    pushHistory();
   });
 });
 function readCustomSize(){
@@ -824,6 +926,8 @@ function readCustomSize(){
 }
 document.getElementById('cw').addEventListener('input', readCustomSize);
 document.getElementById('ch').addEventListener('input', readCustomSize);
+document.getElementById('cw').addEventListener('change', pushHistory);
+document.getElementById('ch').addEventListener('change', pushHistory);
 
 // ═══════════════════════════ LOGO ASSET (uploaded once, shared) ═══════════════════════════
 const logoInput = document.getElementById('logoInput');
@@ -837,6 +941,7 @@ logoInput.addEventListener('change', function(e){
     LOGO_ASSET.img = img; URL.revokeObjectURL(url);
     refreshLogoAssetUI();
     syncActiveUI();
+    pushHistory();
   };
   img.src = url;
 });
@@ -846,6 +951,7 @@ document.getElementById('logoRemoveBtn').addEventListener('click', ()=>{
   if (APP.target==='logo') APP.target='layout';
   refreshLogoAssetUI();
   syncActiveUI();
+  pushHistory();
 });
 function refreshLogoAssetUI(){
   const has = !!LOGO_ASSET.img;
@@ -867,6 +973,7 @@ document.getElementById('logoTog').addEventListener('click', ()=>{
   if (item.logo.enabled) APP.target='logo';
   else if (APP.target==='logo') APP.target='layout';
   syncActiveUI();
+  pushHistory();
 });
 document.getElementById('logoScale').addEventListener('input', function(){
   const item = getActive(); if (!item) return;
@@ -874,21 +981,39 @@ document.getElementById('logoScale').addEventListener('input', function(){
   document.getElementById('logoScaleVal').textContent = this.value+'%';
   render();
 });
+document.getElementById('logoScale').addEventListener('change', pushHistory);
 document.getElementById('logoOp').addEventListener('input', function(){
   const item = getActive(); if (!item) return;
   item.logo.opacity = +this.value;
   document.getElementById('logoOpVal').textContent = this.value+'%';
   render();
 });
+document.getElementById('logoOp').addEventListener('change', pushHistory);
+document.getElementById('logoX').addEventListener('input', function(){
+  const item = getActive(); if (!item) return;
+  item.logo.x = +this.value;
+  document.getElementById('logoXVal').textContent = this.value+'%';
+  render();
+});
+document.getElementById('logoX').addEventListener('change', pushHistory);
+document.getElementById('logoY').addEventListener('input', function(){
+  const item = getActive(); if (!item) return;
+  item.logo.y = +this.value;
+  document.getElementById('logoYVal').textContent = this.value+'%';
+  render();
+});
+document.getElementById('logoY').addEventListener('change', pushHistory);
 document.getElementById('logoCentreBtn').addEventListener('click', ()=>{
   const item = getActive(); if (!item) return;
   item.logo.x = 88; item.logo.y = 88;
-  render();
+  syncActiveUI();
+  pushHistory();
 });
 document.getElementById('singleCentreBtn').addEventListener('click', ()=>{
   const item = getActive(); if (!item) return;
   item.offX = 0; item.offY = 0; item.zoom = 1;
   render();
+  pushHistory();
 });
 
 // ═══════════════════════════ STICKER (per active image; image-mode bitmap shared once) ═══════════════════════════
@@ -899,10 +1024,10 @@ stkImgInput.addEventListener('change', function(e){
   if (!file) return;
   const url = URL.createObjectURL(file);
   const img = new Image();
-  img.onload = ()=>{ STICKER_ASSET.img = img; URL.revokeObjectURL(url); refreshStickerAssetUI(); render(); };
+  img.onload = ()=>{ STICKER_ASSET.img = img; URL.revokeObjectURL(url); refreshStickerAssetUI(); render(); pushHistory(); };
   img.src = url;
 });
-document.getElementById('stkImgRemoveBtn').addEventListener('click', ()=>{ STICKER_ASSET.img=null; refreshStickerAssetUI(); render(); });
+document.getElementById('stkImgRemoveBtn').addEventListener('click', ()=>{ STICKER_ASSET.img=null; refreshStickerAssetUI(); render(); pushHistory(); });
 function refreshStickerAssetUI(){
   const has = !!STICKER_ASSET.img;
   document.getElementById('stkImgBtnLabel').textContent = has ? 'Replace Image' : 'Upload Image';
@@ -924,16 +1049,20 @@ stickerTog.addEventListener('click', ()=>{
   if (item.sticker.enabled) APP.target='sticker';
   else if (APP.target==='sticker') APP.target='layout';
   syncActiveUI();
+  pushHistory();
 });
 document.querySelectorAll('#stickerModeSeg .mode-btn').forEach(b=>{
   b.addEventListener('click', ()=>{
     const item = getActive(); if (!item) return;
     item.sticker.mode = b.dataset.smode;
     syncActiveUI();
+    pushHistory();
   });
 });
 document.getElementById('stkLine1').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.line1=this.value; syncPresetActive(); render(); });
 document.getElementById('stkLine2').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.line2=this.value; syncPresetActive(); render(); });
+document.getElementById('stkLine1').addEventListener('change', pushHistory);
+document.getElementById('stkLine2').addEventListener('change', pushHistory);
 
 // ── quick-select presets ──
 function savePresets(){ try{ localStorage.setItem('scs_sticker_presets', JSON.stringify(PRESETS)); }catch(e){} }
@@ -960,6 +1089,7 @@ function renderPresets(){
       document.getElementById('stkLine1').value = p.line1;
       document.getElementById('stkLine2').value = p.line2;
       syncPresetActive(); render();
+      pushHistory();
     });
     pencil.addEventListener('click', ev=>{ ev.stopPropagation(); openPresetEditor(i); });
     row.appendChild(chip);
@@ -1005,23 +1135,24 @@ document.querySelectorAll('.clr-btn').forEach(btn=>{
     if (target==='bg'){ item.sticker.bg = hex; document.getElementById('bgCurrent').style.background = hex; }
     else { item.sticker.textColor = hex; document.getElementById('textCurrent').style.background = hex; }
     render();
+    pushHistory();
   });
 });
 document.getElementById('stkW').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.width=+this.value; document.getElementById('stkWVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkW').addEventListener('change', pushHistory);
 document.getElementById('stkH').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.height=+this.value; document.getElementById('stkHVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkH').addEventListener('change', pushHistory);
 document.getElementById('stkOp').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.opacity=+this.value; document.getElementById('stkOpVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkOp').addEventListener('change', pushHistory);
+document.getElementById('stkX').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.x=+this.value; document.getElementById('stkXVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkX').addEventListener('change', pushHistory);
+document.getElementById('stkY').addEventListener('input', function(){ const item=getActive(); if(!item)return; item.sticker.y=+this.value; document.getElementById('stkYVal').textContent=this.value+'%'; render(); });
+document.getElementById('stkY').addEventListener('change', pushHistory);
 document.getElementById('stkCentreBtn').addEventListener('click', ()=>{
   const item = getActive(); if (!item) return;
   item.sticker.x=50; item.sticker.y=93;
-  render();
-});
-
-// ═══════════════════════════ FORMAT ═══════════════════════════
-document.getElementById('fmtPng').addEventListener('click', function(){
-  APP.fmt='png'; this.classList.add('active'); document.getElementById('fmtJpg').classList.remove('active');
-});
-document.getElementById('fmtJpg').addEventListener('click', function(){
-  APP.fmt='jpg'; this.classList.add('active'); document.getElementById('fmtPng').classList.remove('active');
+  syncActiveUI();
+  pushHistory();
 });
 
 // ═══════════════════════════ DRAWING ═══════════════════════════
@@ -1294,14 +1425,15 @@ function applyPickedColor(hex){
   document.getElementById('pickBadge').classList.remove('show');
   hideLoupe();
   render();
+  pushHistory();
 }
 
-// ═══════════════════════════ PAN / ZOOM / DRAG-TO-POSITION / COLOUR-PICK ═══════════════════════════
-// What a drag on the canvas controls depends entirely on APP.target:
-//  'image'   → pans/zooms the artwork itself (per-image offX/offY/zoom)
-//  'logo'    → moves/resizes the logo overlay (per-image logo.x/y/scale)
-//  'sticker' → moves/resizes the sticker badge (per-image sticker.x/y/width/height)
-let dragging=false, dragStartX=0, dragStartY=0, dragOX=0, dragOY=0, pinchDist=null, pinchStartVal=null, pinchStartVal2=null;
+// ═══════════════════════════ PAN / ZOOM / COLOUR-PICK ═══════════════════════════
+// A drag/pinch/scroll on the canvas always pans and zooms the pattern
+// artwork itself (per-image offX/offY/zoom) no matter which tab is open.
+// Logo and sticker placement is set from the position/size sliders instead.
+let dragging=false, dragStartX=0, dragStartY=0, dragOX=0, dragOY=0, pinchDist=null, pinchStartVal=null;
+let dragChanged=false;
 const activePointers = new Map();
 
 canvas.addEventListener('pointerdown', e=>{
@@ -1318,19 +1450,13 @@ canvas.addEventListener('pointerdown', e=>{
   }
   if (activePointers.size === 1){
     dragging=true; dragStartX=e.clientX; dragStartY=e.clientY;
-    const dt = dragTarget();
-    if (dt==='image'){ dragOX=item.offX; dragOY=item.offY; }
-    else if (dt==='logo'){ dragOX=item.logo.x; dragOY=item.logo.y; }
-    else if (dt==='sticker'){ dragOX=item.sticker.x; dragOY=item.sticker.y; }
+    dragOX=item.offX; dragOY=item.offY;
     canvas.classList.add('grabbing');
   } else if (activePointers.size === 2){
     dragging=false;
     const pts = Array.from(activePointers.values());
     pinchDist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
-    const dt2 = dragTarget();
-    if (dt2==='image'){ pinchStartVal = item.zoom; }
-    else if (dt2==='logo'){ pinchStartVal = item.logo.scale; }
-    else if (dt2==='sticker'){ pinchStartVal = item.sticker.width; pinchStartVal2 = item.sticker.height; }
+    pinchStartVal = item.zoom;
   }
 });
 canvas.addEventListener('pointermove', e=>{
@@ -1344,42 +1470,17 @@ canvas.addEventListener('pointermove', e=>{
   }
   if (activePointers.size === 1 && dragging){
     const dxPx = e.clientX-dragStartX, dyPx = e.clientY-dragStartY;
-    const dtMove = dragTarget();
-    if (dtMove==='image'){
-      item.offX = dragOX + dxPx;
-      item.offY = dragOY + dyPx;
-    } else if (dtMove==='logo'){
-      const dxPct = canvas.width ? (dxPx/canvas.width*100) : 0;
-      const dyPct = canvas.height ? (dyPx/canvas.height*100) : 0;
-      item.logo.x = clamp(dragOX + dxPct, 0, 100);
-      item.logo.y = clamp(dragOY + dyPct, 0, 100);
-    } else if (dtMove==='sticker'){
-      const dxPct = canvas.width ? (dxPx/canvas.width*100) : 0;
-      const dyPct = canvas.height ? (dyPx/canvas.height*100) : 0;
-      item.sticker.x = clamp(dragOX + dxPct, 0, 100);
-      item.sticker.y = clamp(dragOY + dyPct, 0, 100);
-    }
+    item.offX = dragOX + dxPx;
+    item.offY = dragOY + dyPx;
+    dragChanged = true;
     render();
   } else if (activePointers.size === 2 && pinchDist){
     const pts = Array.from(activePointers.values());
     const dist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
     const f = dist/pinchDist;
-    const dtPinch = dragTarget();
-    if (dtPinch==='image'){
-      const minZoom = (item.mode==='single' && item.singleFit==='cover') ? 1 : 0.2;
-      item.zoom = clamp(pinchStartVal*f, minZoom, 8);
-    } else if (dtPinch==='logo'){
-      item.logo.scale = clamp(pinchStartVal*f, 2, 100);
-      document.getElementById('logoScale').value = item.logo.scale;
-      document.getElementById('logoScaleVal').textContent = Math.round(item.logo.scale)+'%';
-    } else if (dtPinch==='sticker'){
-      item.sticker.width = clamp(pinchStartVal*f, 10, 100);
-      item.sticker.height = clamp(pinchStartVal2*f, 4, 50);
-      document.getElementById('stkW').value = item.sticker.width;
-      document.getElementById('stkWVal').textContent = Math.round(item.sticker.width)+'%';
-      document.getElementById('stkH').value = item.sticker.height;
-      document.getElementById('stkHVal').textContent = Math.round(item.sticker.height)+'%';
-    }
+    const minZoom = (item.mode==='single' && item.singleFit==='cover') ? 1 : 0.2;
+    item.zoom = clamp(pinchStartVal*f, minZoom, 8);
+    dragChanged = true;
     render();
   }
 });
@@ -1389,33 +1490,25 @@ function endPointer(e){
     applyPickedColor(samplePixelAt(e.clientX, e.clientY) || (item ? item.sticker.bg : '#111111'));
   }
   activePointers.delete(e.pointerId);
-  if (activePointers.size < 2){ pinchDist = null; pinchStartVal=null; pinchStartVal2=null; }
-  if (activePointers.size === 0){ dragging=false; canvas.classList.remove('grabbing'); }
+  if (activePointers.size < 2){ pinchDist = null; pinchStartVal=null; }
+  if (activePointers.size === 0){
+    dragging=false; canvas.classList.remove('grabbing');
+    if (dragChanged){ dragChanged=false; pushHistory(); }
+  }
 }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
+let wheelHistTimer=null;
 canvas.addEventListener('wheel', e=>{
   const item = getActive();
   if (!item) return;
   e.preventDefault();
   const f = e.deltaY<0 ? 1.1 : 0.9;
-  const dtWheel = dragTarget();
-  if (dtWheel==='image'){
-    const minZoom = (item.mode==='single' && item.singleFit==='cover') ? 1 : 0.2;
-    item.zoom = clamp(item.zoom*f, minZoom, 8);
-  } else if (dtWheel==='logo'){
-    item.logo.scale = clamp(item.logo.scale*f, 2, 100);
-    document.getElementById('logoScale').value = item.logo.scale;
-    document.getElementById('logoScaleVal').textContent = Math.round(item.logo.scale)+'%';
-  } else if (dtWheel==='sticker'){
-    item.sticker.width = clamp(item.sticker.width*f, 10, 100);
-    item.sticker.height = clamp(item.sticker.height*f, 4, 50);
-    document.getElementById('stkW').value = item.sticker.width;
-    document.getElementById('stkWVal').textContent = Math.round(item.sticker.width)+'%';
-    document.getElementById('stkH').value = item.sticker.height;
-    document.getElementById('stkHVal').textContent = Math.round(item.sticker.height)+'%';
-  }
+  const minZoom = (item.mode==='single' && item.singleFit==='cover') ? 1 : 0.2;
+  item.zoom = clamp(item.zoom*f, minZoom, 8);
   render();
+  clearTimeout(wheelHistTimer);
+  wheelHistTimer = setTimeout(()=> pushHistory(), 500);
 }, {passive:false});
 
 window.addEventListener('resize', ()=>{ if (getActiveImg()) render(); });
@@ -1518,6 +1611,7 @@ document.getElementById('downloadBtn').addEventListener('click', async ()=>{
 updateDimsBadge();
 enableDownload();
 refreshArtUI();
+pushHistory();
 
 </script>
 
